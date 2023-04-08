@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.invoke('connectVoice', { guildId, voiceId });
   },
   togglePause: () => ipcRenderer.invoke('togglePause'),
-  playResource: (path: string) => ipcRenderer.invoke('playResource', { path }),
+  playResource: (path: string, seek?: number) =>
+    ipcRenderer.invoke('playResource', { path, seek }),
   isClientSet: () => ipcRenderer.invoke('isClientSet'),
 });

@@ -1,23 +1,25 @@
-import { Client, Guild } from 'discord.js';
 import {
-  entersState,
-  joinVoiceChannel,
   VoiceConnection,
   VoiceConnectionStatus,
   createAudioPlayer,
   createAudioResource,
-  AudioPlayerStatus,
+  entersState,
+  joinVoiceChannel,
 } from '@discordjs/voice';
-import * as fs from 'fs';
+import { Client, Guild } from 'discord.js';
 
-import ffmpeg from 'ffmpeg';
-
+import { BrowserWindow } from 'electron';
+import fluentFfmpeg from 'fluent-ffmpeg';
+import { PassThrough } from 'stream';
+var pathToFfmpeg = require('ffmpeg-static');
+fluentFfmpeg.setFfmpegPath(pathToFfmpeg);
 export class DiscordClientInteraction {
   private static client: Client;
   private static currentVoiceConnection: VoiceConnection;
-
+  public static mainWindow: BrowserWindow;
   private static audioPlayer = createAudioPlayer();
   private static isPlaying: boolean = false;
+  private static currentlyPlayed: string;
 
   public static setClient(setClient: Client) {
     if (this.client) {
@@ -123,20 +125,51 @@ export class DiscordClientInteraction {
     this.isPlaying = true;
   }
 
-  public static playResource(path: string) {
+  public static playResource(path: string, seekTime: number = 0) {
     try {
-      const newResource = createAudioResource(path);
+      const ps = new PassThrough();
+      let maxDuration;
 
-      this.audioPlayer.play(newResource);
-      this.isPlaying = true;
+      fluentFfmpeg(path).ffprobe((err, data) => {
+        maxDuration = Number(data.format.duration);
+
+        fluentFfmpeg(path)
+          .setStartTime(seekTime)
+          .format('mp3')
+          .output(ps, { end: true })
+          .on('error', (err) => {
+            console.error('FFMPEG ERROR', err);
+          })
+          .run();
+
+        const newResource = createAudioResource(ps);
+
+        this.audioPlayer.play(newResource);
+        this.isPlaying = true;
+        console.log(
+          111,
+          path !== this.currentlyPlayed,
+          path,
+          this.currentlyPlayed
+        );
+        path !== this.currentlyPlayed &&
+          this.mainWindow.webContents.send('RESOURCE_STARTED', {
+            maxDuration,
+          });
+        this.currentlyPlayed = path;
+      });
     } catch (err) {
       console.log(err);
       throw new Error(`couldn\'t play the resource! ${(err as Error).message}`);
     }
   }
 
-  public static isClientSet() {
+  public static isClientSet(bool?: boolean) {
     if (!this.client) {
+      if (bool) {
+        return false;
+      }
+
       throw new Error('Client is not set!');
     }
 

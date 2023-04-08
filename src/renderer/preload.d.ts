@@ -16,7 +16,7 @@ declare global {
       fetchGuilds: () => Promise<shortGuild[]>;
       connectVoice: (guildId: string, voiceId: string) => Promise<boolean>;
       togglePause: () => void;
-      playResource: (path: string) => void;
+      playResource: (path: string, seek?: number) => void;
       isClientSet: () => Promise<boolean>;
     };
   }

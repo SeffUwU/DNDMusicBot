@@ -38,13 +38,14 @@ body {
 }
 
 .width33p {
-  width: 32.3333vw;
+  width: 45%;
   height: 100%;
 }
 
 .file-container {
   background-color: rgb(255, 255, 255);
   height: 100%;
+  overflow: hidden;
 }
 .music-info-container {
   background-color: rgb(97, 113, 113);
@@ -76,6 +77,7 @@ body {
   margin-inline: 10px;
   padding: 10px;
   border-radius: 0.3em;
+  width: 90%;
 }
 
 .file-element:hover {
@@ -148,7 +150,6 @@ body {
 }
 
 .button-width-90 {
-  width: 90%;
   align-self: center;
   margin-top: 1em;
   background-color: #eee;
@@ -177,4 +178,17 @@ body {
   100% {
     transform: rotate(10deg);
   }
+}
+.duration-container {
+  position: relative;
+  top: 10px;
+  width: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-items: center;
+  align-items: center;
+}
+
+.duration-slider {
+  width: 90%;
 }

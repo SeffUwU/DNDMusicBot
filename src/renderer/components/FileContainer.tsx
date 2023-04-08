@@ -7,6 +7,59 @@ export default function FileContainer({
   currentPath: string[];
 }) {
   const [fileList, setFileList] = useState<string[]>([]);
+  const [playback, setPlayback] = useState({
+    isPaused: false,
+    currentFile: '',
+    min: 0,
+    max: 100,
+    value: 0,
+  });
+
+  const [currentInterval, setCurrentInterval] = useState<null | NodeJS.Timer>(
+    null
+  );
+
+  useEffect(() => {
+    console.log(playback);
+    if (Math.ceil(playback.value) === 0 || Math.ceil(playback.max) === 0) {
+      return;
+    }
+    if (Math.ceil(playback.value) >= playback.max) {
+      const currentFileIdx = fileList.findIndex(
+        (val) => val === playback.currentFile
+      );
+
+      const nextFileIdx =
+        currentFileIdx + 1 > fileList.length - 1 ? 0 : currentFileIdx + 1;
+
+      playAudio(fileList[nextFileIdx])();
+    }
+  }, [playback.value, playback.max]);
+
+  useEffect(() => {
+    window.electron.ipcRenderer.on('RESOURCE_STARTED', ({ maxDuration }) => {
+      setPlayback((prev) => ({
+        ...prev,
+        value: 0,
+        max: Math.ceil(maxDuration),
+      }));
+
+      setCurrentInterval((prev) => {
+        prev && clearInterval(prev);
+
+        return setInterval(() => {
+          setPlayback((prev) => {
+            return {
+              ...prev,
+              value: prev.isPaused
+                ? prev.value
+                : Math.min(prev.value + 1, prev.max),
+            };
+          });
+        }, 1000);
+      });
+    });
+  }, []);
 
   useEffect(() => {
     if (!currentPath) return;
@@ -24,11 +77,18 @@ export default function FileContainer({
       })
     );
   }
-  function playAudio(file: string) {
+
+  function playAudio(file: string, seek?: number) {
     return () => {
-      window.electron.playResource(`${currentPath}/${file}`);
+      setPlayback((prev) => ({
+        ...prev,
+        currentFile: file,
+      }));
+      console.log('test', `${currentPath}/${file}`, seek);
+      window.electron.playResource(`${currentPath}/${file}`, seek);
     };
   }
+
   const showFiles = useMemo(() => {
     const components: JSX.Element[] = Array.from({ length: fileList.length });
 
@@ -36,6 +96,13 @@ export default function FileContainer({
       components[index] = (
         <button
           className="button-26 button-width-90"
+          style={{
+            width: '90%',
+            background:
+              playback.currentFile === fileList[index] ? '#6495ED' : undefined,
+            color:
+              playback.currentFile === fileList[index] ? 'white' : undefined,
+          }}
           key={fileList[index]}
           onClick={playAudio(fileList[index])}
         >
@@ -45,7 +112,21 @@ export default function FileContainer({
     });
 
     return components;
-  }, [currentPath, fileList]);
+  }, [currentPath, fileList, playback.currentFile]);
+
+  const sliderOnChange = (e: any) => {
+    setPlayback({ ...playback, value: Number(e.target.value) });
+  };
+
+  const sliderOnMouseUp = () => {
+    playAudio(playback.currentFile, playback.value)();
+  };
+
+  const handlePause = () => {
+    setPlayback((prev) => ({ ...prev, isPaused: !prev.isPaused }));
+    window.electron.togglePause();
+  };
+
   return (
     <div className="width33p file-container">
       <div className="top-bar-container">
@@ -56,12 +137,21 @@ export default function FileContainer({
         >
           RESCAN
         </button>
-
-        <button
-          className="button-26"
-          role="button"
-          onClick={() => window.electron.togglePause()}
-        >
+        <div className="duration-container">
+          <input
+            type="range"
+            className="duration-slider"
+            min={playback.min}
+            max={playback.max}
+            value={playback.value}
+            onChange={sliderOnChange}
+            onMouseUp={sliderOnMouseUp}
+          />
+          <span>{`${Math.floor(playback.value / 60)}:${String(
+            playback.value - Math.floor(playback.value / 60) * 60
+          ).padStart(2, '0')}`}</span>
+        </div>
+        <button className="button-26" role="button" onClick={handlePause}>
           PAUSE
         </button>
       </div>

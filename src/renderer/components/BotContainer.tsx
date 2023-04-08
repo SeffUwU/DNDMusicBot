@@ -52,7 +52,11 @@ export default function BotContainer({
     const components: JSX.Element[] = [
       <button
         className="button-26 button-width-90"
-        style={{ backgroundColor: 'gray' }}
+        style={{
+          width: '90%',
+          alignSelf: 'center',
+          backgroundColor: '#D3D3D3',
+        }}
         onClick={() => setSelectedGuild(null)}
         key={guild?.id}
       >
@@ -66,6 +70,7 @@ export default function BotContainer({
           className="button-26 button-width-90"
           key={channel.id}
           onClick={joinVoice(channel.id)}
+          style={{ width: '90%', alignSelf: 'center' }}
         >
           {channel.name}
         </button>

@@ -4,6 +4,9 @@ import { DiscordClientInteraction } from './discordClientInteractionClass';
 
 export default function botInit(token: string, mainWindow: BrowserWindow) {
   try {
+    if (DiscordClientInteraction.isClientSet(true)) {
+      return;
+    }
     const client = new Client({
       intents: [
         GatewayIntentBits.DirectMessages,

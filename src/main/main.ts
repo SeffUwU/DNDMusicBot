@@ -57,9 +57,8 @@ ipcMain.handle('connectVoice', async (event, ...args) => {
 });
 
 ipcMain.handle('playResource', async (event, ...args) => {
-  const params: { path: string } = args[0];
-
-  DiscordClientInteraction.playResource(params.path);
+  const params: { path: string; seek: number } = args[0];
+  DiscordClientInteraction.playResource(params.path, params.seek);
 
   return true;
 });
@@ -137,7 +136,6 @@ const createWindow = async () => {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
   const menuBuilder = new MenuBuilder(mainWindow);
   menuBuilder.buildMenu();
 
@@ -150,11 +148,12 @@ const createWindow = async () => {
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   // new AppUpdater();
+
+  DiscordClientInteraction.mainWindow = mainWindow;
 };
 
-/**
- * Add event listeners...
- */
+
+
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even
