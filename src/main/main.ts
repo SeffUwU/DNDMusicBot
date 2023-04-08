@@ -27,6 +27,49 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 
+ipcMain.handle('getFileList', async (event, ...args) => {
+  const list = await FileManagerService.getAudioFilesList(args[0] as string);
+
+  return list;
+});
+
+ipcMain.handle('isClientSet', async (event, ...args) => {
+  try {
+    return DiscordClientInteraction.isClientSet();
+  } catch (err) {
+    return false;
+  }
+});
+
+// Handlers below
+ipcMain.handle('fetchGuilds', async (event, ...args) => {
+  const guilds = await DiscordClientInteraction.fetchGuilds();
+
+  return guilds;
+});
+
+ipcMain.handle('connectVoice', async (event, ...args) => {
+  const params: { guildId: string; voiceId: string } = args[0];
+
+  DiscordClientInteraction.joinVoice(params.guildId, params.voiceId);
+
+  return true;
+});
+
+ipcMain.handle('playResource', async (event, ...args) => {
+  const params: { path: string } = args[0];
+
+  DiscordClientInteraction.playResource(params.path);
+
+  return true;
+});
+
+ipcMain.handle('togglePause', async (event, ...args) => {
+  DiscordClientInteraction.togglePause();
+
+  return true;
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
@@ -74,6 +117,7 @@ const createWindow = async () => {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
+      nodeIntegration: true,
     },
   });
 
@@ -103,22 +147,9 @@ const createWindow = async () => {
     return { action: 'deny' };
   });
 
-  ipcMain.handle('getFileList', async (event, ...args) => {
-    const list = await FileManagerService.getAudioFilesList(args[0] as string);
-
-    return list;
-  });
-
-  ipcMain.handle('isClientSet', async (event, ...args) => {
-    try {
-      return DiscordClientInteraction.isClientSet();
-    } catch (err) {
-      return false;
-    }
-  });
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
-  new AppUpdater();
+  // new AppUpdater();
 };
 
 /**

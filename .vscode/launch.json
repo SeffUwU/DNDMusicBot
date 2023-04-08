@@ -1,6 +1,14 @@
 {
   "version": "0.2.0",
   "configurations": [
+    
+  {
+    "name": "Attach to Chrome",
+    "port": 9222,
+    "request": "attach",
+    "type": "chrome",
+    "webRoot": "${workspaceFolder}"
+  },
     {
       "name": "Electron: Main",
       "type": "node",
@@ -9,7 +17,7 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "start"],
       "env": {
-        "MAIN_ARGS": "--inspect=5858 --remote-debugging-port=9223"
+        "MAIN_ARGS": "--inspect=5858 --remote-debugging-port=9229"
       }
     },
     {

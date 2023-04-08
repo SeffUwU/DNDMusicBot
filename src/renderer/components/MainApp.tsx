@@ -27,6 +27,10 @@ export default function MainApp() {
         setCurrentPath((args as EventArgs).filePaths as string[]);
       }
     });
+
+    window.electron.ipcRenderer.on('ERROR_HANDLE', (...args) => {
+      alert(args);
+    });
   }, []);
 
   async function checkBotStarted() {

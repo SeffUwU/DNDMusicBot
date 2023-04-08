@@ -213,8 +213,7 @@ export default class MenuBuilder {
             accelerator: 'Ctrl+S',
             click: () => {
               botInit(
-                'MTAzMzA3MzQ2MTg0MjY5MDE1MA.GRWE5u.HFBaT4UOA2LVG3G84d0vGpmMxlK05VvItrV7O4',
-                ipcMain,
+                'MTAzMzA3MzQ2MTg0MjY5MDE1MA.GB-QJU.WjGc6C3AN4OXo4-9z4gnCTtoG4DvIBNk5Zc2DI',
                 this.mainWindow
               );
             },
