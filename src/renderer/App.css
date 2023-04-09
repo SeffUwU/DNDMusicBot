@@ -89,7 +89,6 @@ body {
 
 .file-element:hover {
   background-color: rgb(181, 181, 181);
-  transition: all ease-in-out 0.3s;
   cursor: pointer;
 }
 

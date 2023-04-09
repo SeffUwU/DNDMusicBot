@@ -102,7 +102,7 @@ export default function FileContainer({
           className="button-26 button-width-90"
           style={{
             background:
-              playback.currentFile === fileList[index] ? '#6495ED' : '#282c34',
+              playback.currentFile === fileList[index] ? '#6495ED' : undefined,
             color: 'white',
           }}
           key={fileList[index]}

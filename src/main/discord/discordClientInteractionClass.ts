@@ -6,19 +6,23 @@ import {
   entersState,
   joinVoiceChannel,
 } from '@discordjs/voice';
-import { Client, Guild } from 'discord.js';
+import { Client, Collection, Guild, GuildBasedChannel } from 'discord.js';
 
-import { BrowserWindow, ipcRenderer } from 'electron';
-import fluentFfmpeg from 'fluent-ffmpeg';
+import { BrowserWindow } from 'electron';
+import fluentFfmpeg, { FfmpegCommand } from 'fluent-ffmpeg';
 import { PassThrough } from 'stream';
+
 var pathToFfmpeg = require('ffmpeg-static');
 fluentFfmpeg.setFfmpegPath(pathToFfmpeg);
+
 export class DiscordClientInteraction {
   private static client: Client;
   private static currentVoiceConnection: VoiceConnection;
-  public static mainWindow: BrowserWindow;
   private static audioPlayer = createAudioPlayer();
   private static isPlaying: boolean = false;
+  private static currentFfmpegCommand: FfmpegCommand | null;
+  private static currentOpenStream: PassThrough | null;
+  public static mainWindow: BrowserWindow;
 
   public static setClient(setClient: Client) {
     if (this.client) {
@@ -28,7 +32,11 @@ export class DiscordClientInteraction {
     this.client = setClient;
   }
 
-  public static getGuilds(): { id: string; name: string }[] {
+  public static getGuilds(): {
+    id: string;
+    name: string;
+    channels: Collection<string, GuildBasedChannel>;
+  }[] {
     this.isClientSet();
 
     return this.client.guilds.cache.map((guild) => {
@@ -89,12 +97,16 @@ export class DiscordClientInteraction {
       adapterCreator: guild.voiceAdapterCreator,
     });
 
+    connection.removeAllListeners();
+
     connection.once(VoiceConnectionStatus.Ready, () => {
       console.log('Connected to voice! ');
 
       connection.subscribe(this.audioPlayer);
       const { name, id, ...rest } = channel;
       this.emitRender('VOICE_CHANGED', { name, id });
+
+      this.audioPlayer.removeAllListeners();
 
       this.audioPlayer.on('error', (err) => {
         console.log(err);
@@ -141,21 +153,36 @@ export class DiscordClientInteraction {
           );
         }
 
-        const ps = new PassThrough();
-        const maxDuration = Number(data.format.duration);
-        const newResource = createAudioResource(ps);
+        if (this.currentFfmpegCommand) {
+          this.currentFfmpegCommand.kill('');
+          this.currentFfmpegCommand = null;
+        }
 
-        fluentFfmpeg(path)
+        if (this.currentOpenStream) {
+          this.audioPlayer.stop(true);
+          this.currentOpenStream.end();
+        }
+
+        this.currentOpenStream = new PassThrough({ autoDestroy: true });
+
+        const maxDuration = Number(data.format.duration);
+        const newResource = createAudioResource(this.currentOpenStream);
+
+        this.currentFfmpegCommand = fluentFfmpeg(path)
           .setStartTime(seekTime ?? 0) // <-- making sure it's 0
           .format('mp3')
-          .output(ps, { end: true })
-          .on('error', (err) => {
-            console.log(err);
+          .output(this.currentOpenStream, { end: true })
+          .on('error', (err: Error) => {
+            // Weird. but i couldn't get it to close properly..
+            if (err.message === 'Error: Output stream error: Premature close') {
+              return;
+            }
             this.emitRenderError(
               new Error(`Error creating stream for file: ${path} `)
             );
-          })
-          .run();
+          });
+
+        this.currentFfmpegCommand.run();
 
         this.audioPlayer.play(newResource);
         this.isPlaying = true;
