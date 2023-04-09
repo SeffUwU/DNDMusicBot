@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron/renderer';
 import { useEffect, useMemo, useState } from 'react';
+import { useElectronState } from 'renderer/customHooks';
 
 export default function FileContainer({
   currentPath,
@@ -15,15 +16,15 @@ export default function FileContainer({
     value: 0,
   });
 
-  const [currentInterval, setCurrentInterval] = useState<null | NodeJS.Timer>(
-    null
-  );
+  const [_ci, setCurrentInterval] = useState<null | NodeJS.Timer>(null);
+
+  const pausedState = useElectronState('RESOURCE_PAUSED', false);
 
   useEffect(() => {
-    console.log(playback);
     if (Math.ceil(playback.value) === 0 || Math.ceil(playback.max) === 0) {
       return;
     }
+
     if (Math.ceil(playback.value) >= playback.max) {
       const currentFileIdx = fileList.findIndex(
         (val) => val === playback.currentFile
@@ -37,28 +38,31 @@ export default function FileContainer({
   }, [playback.value, playback.max]);
 
   useEffect(() => {
-    window.electron.ipcRenderer.on('RESOURCE_STARTED', ({ maxDuration }) => {
-      setPlayback((prev) => ({
-        ...prev,
-        value: 0,
-        max: Math.ceil(maxDuration),
-      }));
+    window.electron.ipcRenderer.on(
+      'RESOURCE_STARTED',
+      ({ maxDuration, seek }) => {
+        setPlayback((prev) => ({
+          ...prev,
+          value: seek ?? 0,
+          max: Math.ceil(maxDuration),
+        }));
 
-      setCurrentInterval((prev) => {
-        prev && clearInterval(prev);
+        setCurrentInterval((prev) => {
+          prev && clearInterval(prev);
 
-        return setInterval(() => {
-          setPlayback((prev) => {
-            return {
-              ...prev,
-              value: prev.isPaused
-                ? prev.value
-                : Math.min(prev.value + 1, prev.max),
-            };
-          });
-        }, 1000);
-      });
-    });
+          return setInterval(() => {
+            setPlayback((prev) => {
+              return {
+                ...prev,
+                value: prev.isPaused
+                  ? prev.value
+                  : Math.min(prev.value + 1, prev.max),
+              };
+            });
+          }, 1000);
+        });
+      }
+    );
   }, []);
 
   useEffect(() => {
@@ -84,7 +88,7 @@ export default function FileContainer({
         ...prev,
         currentFile: file,
       }));
-      console.log('test', `${currentPath}/${file}`, seek);
+
       window.electron.playResource(`${currentPath}/${file}`, seek);
     };
   }
@@ -97,11 +101,9 @@ export default function FileContainer({
         <button
           className="button-26 button-width-90"
           style={{
-            width: '90%',
             background:
-              playback.currentFile === fileList[index] ? '#6495ED' : undefined,
-            color:
-              playback.currentFile === fileList[index] ? 'white' : undefined,
+              playback.currentFile === fileList[index] ? '#6495ED' : '#282c34',
+            color: 'white',
           }}
           key={fileList[index]}
           onClick={playAudio(fileList[index])}
@@ -147,12 +149,19 @@ export default function FileContainer({
             onChange={sliderOnChange}
             onMouseUp={sliderOnMouseUp}
           />
-          <span>{`${Math.floor(playback.value / 60)}:${String(
+          <span style={{ color: 'white' }}>{`${Math.floor(
+            playback.value / 60
+          )}:${String(
             playback.value - Math.floor(playback.value / 60) * 60
           ).padStart(2, '0')}`}</span>
         </div>
-        <button className="button-26" role="button" onClick={handlePause}>
-          PAUSE
+        <button
+          className="button-26"
+          style={{ width: '96px' }}
+          role="button"
+          onClick={handlePause}
+        >
+          {pausedState ? '⏸' : '⏵'}
         </button>
       </div>
       <div className="file-holder">{showFiles}</div>

@@ -8,7 +8,7 @@ import {
 } from '@discordjs/voice';
 import { Client, Guild } from 'discord.js';
 
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, ipcRenderer } from 'electron';
 import fluentFfmpeg from 'fluent-ffmpeg';
 import { PassThrough } from 'stream';
 var pathToFfmpeg = require('ffmpeg-static');
@@ -19,7 +19,6 @@ export class DiscordClientInteraction {
   public static mainWindow: BrowserWindow;
   private static audioPlayer = createAudioPlayer();
   private static isPlaying: boolean = false;
-  private static currentlyPlayed: string;
 
   public static setClient(setClient: Client) {
     if (this.client) {
@@ -68,6 +67,7 @@ export class DiscordClientInteraction {
     this.isClientSet();
 
     if (this.currentVoiceConnection) {
+      this.currentVoiceConnection.disconnect();
       this.currentVoiceConnection.destroy();
     }
 
@@ -93,9 +93,12 @@ export class DiscordClientInteraction {
       console.log('Connected to voice! ');
 
       connection.subscribe(this.audioPlayer);
+      const { name, id, ...rest } = channel;
+      this.emitRender('VOICE_CHANGED', { name, id });
 
       this.audioPlayer.on('error', (err) => {
         console.log(err);
+        this.emitRenderError(new Error(`AudioPlayer error: ${err}`));
       });
     });
 
@@ -118,49 +121,56 @@ export class DiscordClientInteraction {
     if (this.isPlaying) {
       this.audioPlayer.pause();
       this.isPlaying = false;
-      return;
+    } else {
+      this.audioPlayer.unpause();
+      this.isPlaying = true;
     }
 
-    this.audioPlayer.unpause();
-    this.isPlaying = true;
+    this.mainWindow.webContents.send('RESOURCE_PAUSED', this.isPlaying);
   }
 
   public static playResource(path: string, seekTime: number = 0) {
     try {
-      const ps = new PassThrough();
-      let maxDuration;
-
       fluentFfmpeg(path).ffprobe((err, data) => {
-        maxDuration = Number(data.format.duration);
+        if (err) {
+          console.log(err);
+          this.emitRenderError(
+            new Error(
+              `Error probing file: ${path}. \nThis may be because file lacks metadata or is not probable. `
+            )
+          );
+        }
+
+        const ps = new PassThrough();
+        const maxDuration = Number(data.format.duration);
+        const newResource = createAudioResource(ps);
 
         fluentFfmpeg(path)
-          .setStartTime(seekTime)
+          .setStartTime(seekTime ?? 0) // <-- making sure it's 0
           .format('mp3')
           .output(ps, { end: true })
           .on('error', (err) => {
-            console.error('FFMPEG ERROR', err);
+            console.log(err);
+            this.emitRenderError(
+              new Error(`Error creating stream for file: ${path} `)
+            );
           })
           .run();
 
-        const newResource = createAudioResource(ps);
-
         this.audioPlayer.play(newResource);
         this.isPlaying = true;
-        console.log(
-          111,
-          path !== this.currentlyPlayed,
-          path,
-          this.currentlyPlayed
-        );
-        path !== this.currentlyPlayed &&
-          this.mainWindow.webContents.send('RESOURCE_STARTED', {
-            maxDuration,
-          });
-        this.currentlyPlayed = path;
+
+        this.emitRender('RESOURCE_STARTED', {
+          maxDuration,
+          seek: seekTime,
+        });
+        this.emitRender('RESOURCE_PAUSED', true);
       });
     } catch (err) {
       console.log(err);
-      throw new Error(`couldn\'t play the resource! ${(err as Error).message}`);
+      this.emitRenderError(
+        new Error(`couldn\'t play the resource! ${(err as Error).message}`)
+      );
     }
   }
 
@@ -174,5 +184,13 @@ export class DiscordClientInteraction {
     }
 
     return true;
+  }
+
+  private static emitRender(event: string, data: any) {
+    this.mainWindow.webContents.send(event, data);
+  }
+
+  private static emitRenderError(data: any) {
+    this.emitRender('MAIN_PROCESS_ERROR', data);
   }
 }

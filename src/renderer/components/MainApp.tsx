@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { shortGuild } from 'renderer/types/types';
 import BotContainer from './BotContainer';
 import FileContainer from './FileContainer';
@@ -40,12 +40,32 @@ export default function MainApp() {
       setBotStarted(status);
     }
   }
-
-  return (
-    <>
+  const renderLogo = useMemo(
+    () => (
       <div className="top-logo">
         <span>H010's personal DND bot!</span>
-        <img className="botLogo" src={MyImage.default} />
+      </div>
+    ),
+    []
+  );
+  return (
+    <>
+      {/* {renderLogo} */}
+      <div className="top-bar-control">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            marginRight: '10px',
+            marginLeft: '5px',
+          }}
+        >
+          <img className="botLogo" src={MyImage.default} />
+        </div>
+        <button>Music Control</button>
+        <button>Bot Control</button>
       </div>
       {isBotStarted ? (
         <div className="main-container">

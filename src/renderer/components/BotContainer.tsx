@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useElectronState } from 'renderer/customHooks';
 import { shortGuild } from 'renderer/types/types';
 
 export default function BotContainer({
@@ -12,6 +13,11 @@ export default function BotContainer({
 }) {
   const [selectedGuild, setSelectedGuild] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const currentVoiceChannel = useElectronState<shortGuild>('VOICE_CHANGED', {
+    id: '',
+    name: '',
+    channels: null,
+  });
 
   useEffect(() => {
     if (!selectedGuild || !selectedVoice) {
@@ -27,8 +33,8 @@ export default function BotContainer({
     }
     return currentGuilds.map((guild) => (
       <button
-        className="file-element"
-        style={{ width: '90%', alignSelf: 'center' }}
+        className="button-26 button-width-90"
+        style={{ alignSelf: 'center', borderColor: 'gold' }}
         key={guild.id}
         onClick={() => setSelectedGuild(guild.id)}
       >
@@ -53,9 +59,8 @@ export default function BotContainer({
       <button
         className="button-26 button-width-90"
         style={{
-          width: '90%',
           alignSelf: 'center',
-          backgroundColor: '#D3D3D3',
+          backgroundColor: '#3e485a',
         }}
         onClick={() => setSelectedGuild(null)}
         key={guild?.id}
@@ -70,7 +75,12 @@ export default function BotContainer({
           className="button-26 button-width-90"
           key={channel.id}
           onClick={joinVoice(channel.id)}
-          style={{ width: '90%', alignSelf: 'center' }}
+          style={{
+            width: '90%',
+            alignSelf: 'center',
+            backgroundColor:
+              currentVoiceChannel.id === channel.id ? '#6495ED' : undefined,
+          }}
         >
           {channel.name}
         </button>
@@ -91,17 +101,25 @@ export default function BotContainer({
       <div className="top-bar-container" style={{ alignItems: 'center' }}>
         <div
           style={{
-            width: '0.8em',
-            height: '0.8em',
-            backgroundColor: isBotStarted ? 'green' : 'red',
-            margin: '0.25em',
-            borderRadius: '50px',
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'flex-start',
           }}
-        ></div>
-        Current bot status:
-        <span style={{ color: isBotStarted ? 'green' : 'gray' }}>
-          {isBotStarted ? 'running' : ' not running'}
-        </span>
+        >
+          <div
+            style={{
+              width: '0.8em',
+              height: '0.8em',
+              backgroundColor: isBotStarted ? 'green' : 'red',
+              margin: '0.25em',
+              borderRadius: '50px',
+            }}
+          ></div>
+          <span style={{ color: 'white', marginInline: '5px' }}>Status:</span>
+          <span style={{ color: isBotStarted ? 'green' : 'gray' }}>
+            {isBotStarted ? ' Running ' : ' Not Running '}
+          </span>
+        </div>
         <button className="button-26" role="button" onClick={refreshGuilds}>
           REFRESH GUILDS
         </button>
