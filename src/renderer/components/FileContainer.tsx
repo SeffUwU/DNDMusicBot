@@ -1,11 +1,14 @@
 import { ipcRenderer } from 'electron/renderer';
 import { useEffect, useMemo, useState } from 'react';
-import { useElectronState } from 'renderer/customHooks';
+import { useElectronHandler, useElectronState } from 'renderer/customHooks';
+import { PlayerSettingsType } from 'renderer/types/types';
 
 export default function FileContainer({
   currentPath,
+  playerSettings,
 }: {
   currentPath: string[];
+  playerSettings: PlayerSettingsType;
 }) {
   const [fileList, setFileList] = useState<string[]>([]);
   const [playback, setPlayback] = useState({
@@ -26,6 +29,14 @@ export default function FileContainer({
     }
 
     if (Math.ceil(playback.value) >= playback.max) {
+      if (playerSettings.repeat) {
+        playAudio(playback.currentFile)();
+        return;
+      }
+      if (!playerSettings.autoplay) {
+        handlePause();
+        return;
+      }
       const currentFileIdx = fileList.findIndex(
         (val) => val === playback.currentFile
       );
@@ -37,33 +48,31 @@ export default function FileContainer({
     }
   }, [playback.value, playback.max]);
 
-  useEffect(() => {
-    window.electron.ipcRenderer.on(
-      'RESOURCE_STARTED',
-      ({ maxDuration, seek }) => {
-        setPlayback((prev) => ({
-          ...prev,
-          value: seek ?? 0,
-          max: Math.ceil(maxDuration),
-        }));
+  useElectronHandler(
+    'RESOURCE_STARTED',
+    ({ maxDuration, seek }: { maxDuration: number; seek: number }) => {
+      setPlayback((prev) => ({
+        ...prev,
+        value: seek ?? 0,
+        max: Math.ceil(maxDuration),
+      }));
 
-        setCurrentInterval((prev) => {
-          prev && clearInterval(prev);
+      setCurrentInterval((prev) => {
+        prev && clearInterval(prev);
 
-          return setInterval(() => {
-            setPlayback((prev) => {
-              return {
-                ...prev,
-                value: prev.isPaused
-                  ? prev.value
-                  : Math.min(prev.value + 1, prev.max),
-              };
-            });
-          }, 1000);
-        });
-      }
-    );
-  }, []);
+        return setInterval(() => {
+          setPlayback((prev) => {
+            return {
+              ...prev,
+              value: prev.isPaused
+                ? prev.value
+                : Math.min(prev.value + 1, prev.max),
+            };
+          });
+        }, 1000);
+      });
+    }
+  );
 
   useEffect(() => {
     if (!currentPath) return;
@@ -87,6 +96,7 @@ export default function FileContainer({
       setPlayback((prev) => ({
         ...prev,
         currentFile: file,
+        isPaused: false,
       }));
 
       window.electron.playResource(`${currentPath}/${file}`, seek);
@@ -124,10 +134,10 @@ export default function FileContainer({
     playAudio(playback.currentFile, playback.value)();
   };
 
-  const handlePause = () => {
+  function handlePause() {
     setPlayback((prev) => ({ ...prev, isPaused: !prev.isPaused }));
     window.electron.togglePause();
-  };
+  }
 
   return (
     <div className="width33p file-container">

@@ -56,16 +56,16 @@ function roll(sides: number) {
 }
 
 function matchMod(testStr: string) {
-  return testStr.match(/\d+d\d+\+\d+/)?.[0] as string;
+  return testStr.match(/\d+d\d+\+\d+/i)?.[0] as string;
 }
 function matchNonMod(testStr: string) {
-  return testStr.match(/\d+d\d+/)?.[0] as string;
+  return testStr.match(/\d+d\d+/i)?.[0] as string;
 }
 function matchSingle(testStr: string) {
-  return testStr.match(/d\d+/)?.[0] as string;
+  return testStr.match(/d\d+/i)?.[0] as string;
 }
 function matchSingleMod(testStr: string) {
-  return testStr.match(/d\d+\+\d+/)?.[0] as string;
+  return testStr.match(/d\d+\+\d+/i)?.[0] as string;
 }
 
 const funnyDictionary = [
@@ -78,6 +78,11 @@ const funnyDictionary = [
 ];
 
 const funnyReply = () => funnyDictionary[roll(funnyDictionary.length - 1) - 1];
+
+const moreThan100Msg = (count: number) => {
+  return count > 100 ? 'count>100\n' : '';
+};
+
 export const commandHandlers = {
   roll: (interaction: ChatInputCommandInteraction<CacheType>) => {
     // try {
@@ -94,13 +99,19 @@ export const commandHandlers = {
       const [count, rest] = matched.split('d');
       const [sides, mod] = rest.split('+');
 
-      const results: any[] = Array.apply(null, Array(Number(count)));
+      const results: any[] = Array.apply(
+        null,
+        Array(Math.min(Number(count), 100))
+      );
 
       results.forEach((_v, idx) => {
         results[idx] = roll(Number(sides));
       });
       interaction.reply({
-        content: `${matched}:\n${results.join(' + ')} + ${mod} = ${
+        content: `${moreThan100Msg(Number(count))}${Math.min(
+          Number(count),
+          100
+        )}d${sides}+${mod}:\n${results.join(' + ')} + ${mod} = ${
           results.reduce((acc, val) => acc + val, 0) + Number(mod)
         }`,
       });
@@ -112,13 +123,19 @@ export const commandHandlers = {
 
       const [count, sides] = matched.split('d');
 
-      const results: any[] = Array.apply(null, Array(Number(count)));
+      const results: any[] = Array.apply(
+        null,
+        Array(Math.min(Number(count), 100))
+      );
 
       results.forEach((_v, idx) => {
         results[idx] = roll(Number(sides));
       });
       interaction.reply({
-        content: `${matched}:\n${results.join(' + ')} = ${results.reduce(
+        content: `${moreThan100Msg(Number(count))}${Math.min(
+          Number(count),
+          100
+        )}d${sides}:\n${results.join(' + ')} = ${results.reduce(
           (acc, val) => acc + val,
           0
         )}`,
@@ -128,7 +145,6 @@ export const commandHandlers = {
 
     if (matchSingleMod(m)) {
       const matched = matchSingleMod(m);
-      console.log(matched);
       const [message, mod] = matched.split('+');
 
       const rolled = roll(Number(message.replace('d', '')));

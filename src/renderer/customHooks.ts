@@ -15,3 +15,14 @@ export const useElectronState = function <T>(
 
   return state;
 };
+
+export const useElectronHandler = function <T>(
+  eventName: Channels,
+  cb: any,
+  dependency?: any[]
+) {
+  useEffect(() => {
+    const eventClearer = window.electron.ipcRenderer.on(eventName, cb);
+    () => eventClearer;
+  }, [dependency]);
+};

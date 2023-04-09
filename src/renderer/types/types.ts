@@ -3,3 +3,8 @@ export type shortGuild = {
   name: string;
   channels: any;
 };
+
+export type PlayerSettingsType = {
+  repeat: boolean;
+  autoplay: boolean;
+};

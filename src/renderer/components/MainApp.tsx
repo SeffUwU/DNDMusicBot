@@ -1,10 +1,10 @@
-import { app } from 'electron';
-import { useEffect, useMemo, useState } from 'react';
-import { shortGuild } from 'renderer/types/types';
+import { ChangeEvent, useEffect, useState } from 'react';
+import { PlayerSettingsType, shortGuild } from 'renderer/types/types';
 import BotContainer from './BotContainer';
 import FileContainer from './FileContainer';
 
 import * as MyImage from './../assets/bot_avi.jpg';
+import { useElectronHandler } from 'renderer/customHooks';
 
 type EventArgs = {
   filePaths?: string[];
@@ -15,22 +15,23 @@ export default function MainApp() {
   const [currentGuilds, setCurrentGuilds] = useState<shortGuild[]>([]);
   const [isBotStarted, setBotStarted] = useState<boolean>(false);
 
+  const [playerSettings, setPlayerSettings] = useState<PlayerSettingsType>({
+    repeat: false,
+    autoplay: true,
+  });
+
+  useElectronHandler('BOT_START', () => {
+    setBotStarted(true);
+  });
+
+  useElectronHandler('DIR_CHANGE', (args: EventArgs) => {
+    if (args?.filePaths) {
+      setCurrentPath((args as EventArgs).filePaths as string[]);
+    }
+  });
+
   useEffect(() => {
     checkBotStarted();
-
-    window.electron.ipcRenderer.on('BOT_START', (args) => {
-      setBotStarted(true);
-    });
-
-    window.electron.ipcRenderer.on('DIR_CHANGE', (args) => {
-      if ((args as EventArgs)?.filePaths) {
-        setCurrentPath((args as EventArgs).filePaths as string[]);
-      }
-    });
-
-    window.electron.ipcRenderer.on('ERROR_HANDLE', (...args) => {
-      alert(args);
-    });
   }, []);
 
   async function checkBotStarted() {
@@ -40,14 +41,15 @@ export default function MainApp() {
       setBotStarted(status);
     }
   }
-  const renderLogo = useMemo(
-    () => (
-      <div className="top-logo">
-        <span>H010's personal DND bot!</span>
-      </div>
-    ),
-    []
-  );
+
+  const onSettingChange =
+    (setting: string) => (event: ChangeEvent<HTMLInputElement>) => {
+      setPlayerSettings((prev) => ({
+        ...prev,
+        [setting]: event.target.checked,
+      }));
+    };
+
   return (
     <>
       {/* {renderLogo} */}
@@ -58,18 +60,50 @@ export default function MainApp() {
             alignItems: 'center',
             justifyContent: 'center',
             height: '100%',
-            marginRight: '10px',
-            marginLeft: '5px',
+            paddingRight: '10px',
+            paddingLeft: '5px',
           }}
         >
-          <img className="botLogo" src={MyImage.default} />
+          <span className="unselectable">H010's MusicBot</span>
+          <img className="botLogo unselectable" src={MyImage.default} />
         </div>
-        <button>Music Control</button>
-        <button>Bot Control</button>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div className="top-bar-param">
+            <span className="unselectable">ПОВТОР ПЕСНИ</span>
+            <label className="switch unselectable">
+              <input
+                type="checkbox"
+                checked={playerSettings.repeat}
+                onChange={onSettingChange('repeat')}
+              />
+              <span className="slider round"></span>
+            </label>
+          </div>
+
+          <div className="top-bar-param">
+            <span className="unselectable">АВТОПРОИГРЫВАНИЕ</span>
+            <label className="switch unselectable">
+              <input
+                type="checkbox"
+                checked={playerSettings.autoplay}
+                onChange={onSettingChange('autoplay')}
+              />
+              <span className="slider round"></span>
+            </label>
+          </div>
+        </div>
       </div>
       {isBotStarted ? (
         <div className="main-container">
-          <FileContainer currentPath={currentPath} />
+          <FileContainer
+            currentPath={currentPath}
+            playerSettings={playerSettings}
+          />
           <BotContainer
             currentGuilds={currentGuilds}
             setCurrentGuilds={setCurrentGuilds}
