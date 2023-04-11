@@ -1,5 +1,6 @@
 import { Channels } from 'main/preload';
 import { shortGuild } from './types/types';
+import { FSType } from 'sharedTypes/sharedTypes';
 
 declare global {
   interface Window {
@@ -12,7 +13,7 @@ declare global {
         ): (() => void) | undefined;
         once(channel: Channels, func: (...args: unknown[]) => void): void;
       };
-      getFileList: (path: string) => Promise<string[]>;
+      getFileList: (path: string) => Promise<FSType[]>;
       fetchGuilds: () => Promise<shortGuild[]>;
       connectVoice: (guildId: string, voiceId: string) => Promise<boolean>;
       togglePause: () => void;

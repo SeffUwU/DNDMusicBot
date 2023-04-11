@@ -3,15 +3,10 @@ import { PlayerSettingsType, shortGuild } from 'renderer/types/types';
 import BotContainer from './BotContainer';
 import FileContainer from './FileContainer';
 
-import * as MyImage from './../assets/bot_avi.jpg';
 import { useElectronHandler } from 'renderer/customHooks';
-
-type EventArgs = {
-  filePaths?: string[];
-};
+import * as MyImage from './../assets/bot_avi.jpg';
 
 export default function MainApp() {
-  const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [currentGuilds, setCurrentGuilds] = useState<shortGuild[]>([]);
   const [isBotStarted, setBotStarted] = useState<boolean>(false);
 
@@ -20,14 +15,13 @@ export default function MainApp() {
     autoplay: true,
   });
 
-  useElectronHandler('BOT_START', () => {
-    setBotStarted(true);
+  useElectronHandler('MAIN_PROCESS_ERROR', (data: any) => {
+    // This is mainly for debugging reasons.
+    console.error(data);
   });
 
-  useElectronHandler('DIR_CHANGE', (args: EventArgs) => {
-    if (args?.filePaths) {
-      setCurrentPath((args as EventArgs).filePaths as string[]);
-    }
+  useElectronHandler('BOT_START', () => {
+    setBotStarted(true);
   });
 
   useEffect(() => {
@@ -52,7 +46,11 @@ export default function MainApp() {
 
   return (
     <>
-      {/* {renderLogo} */}
+      {/* <div className="custom-title-bar">
+        <div>_</div>
+        <div>[]</div>
+        <div>X</div>
+      </div> */}
       <div className="top-bar-control">
         <div
           style={{
@@ -100,10 +98,7 @@ export default function MainApp() {
       </div>
       {isBotStarted ? (
         <div className="main-container">
-          <FileContainer
-            currentPath={currentPath}
-            playerSettings={playerSettings}
-          />
+          <FileContainer playerSettings={playerSettings} />
           <BotContainer
             currentGuilds={currentGuilds}
             setCurrentGuilds={setCurrentGuilds}

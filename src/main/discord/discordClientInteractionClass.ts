@@ -8,12 +8,19 @@ import {
 } from '@discordjs/voice';
 import { Client, Collection, Guild, GuildBasedChannel } from 'discord.js';
 
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, app } from 'electron';
 import fluentFfmpeg, { FfmpegCommand } from 'fluent-ffmpeg';
+import { normalize } from 'path';
 import { PassThrough } from 'stream';
 
-var pathToFfmpeg = require('ffmpeg-static');
-fluentFfmpeg.setFfmpegPath(pathToFfmpeg);
+const FfmpegPath = require('ffmpeg-static');
+const FfpropePath = require('ffprobe-static');
+
+fluentFfmpeg.setFfmpegPath(
+  app.isPackaged
+    ? './resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg.exe'
+    : FfmpegPath
+);
 
 export class DiscordClientInteraction {
   private static client: Client;
@@ -143,6 +150,8 @@ export class DiscordClientInteraction {
 
   public static playResource(path: string, seekTime: number = 0) {
     try {
+      path = String(normalize(path));
+      console.log(path);
       fluentFfmpeg(path).ffprobe((err, data) => {
         if (err) {
           console.log(err);
@@ -217,7 +226,7 @@ export class DiscordClientInteraction {
     this.mainWindow.webContents.send(event, data);
   }
 
-  private static emitRenderError(data: any) {
+  public static emitRenderError(data: any) {
     this.emitRender('MAIN_PROCESS_ERROR', data);
   }
 }

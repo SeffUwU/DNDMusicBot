@@ -1,16 +1,46 @@
-import { ipcRenderer } from 'electron/renderer';
 import { useEffect, useMemo, useState } from 'react';
 import { useElectronHandler, useElectronState } from 'renderer/customHooks';
 import { PlayerSettingsType } from 'renderer/types/types';
+import { FSType } from 'sharedTypes/sharedTypes';
+
+type EventArgs = {
+  filePaths?: string[];
+};
+
+type SelectedFolderType = {
+  folderIndex: null | number;
+  isInFolder: boolean;
+};
+
+const BackButton = ({ onPress }: { onPress: any }) => {
+  return (
+    <button
+      className="button-26 button-width-90"
+      style={{
+        color: 'white',
+        display: 'flex',
+        flexDirection: 'row',
+        backgroundColor: '#3e485a',
+      }}
+      key={'back'}
+      onClick={onPress}
+    >
+      <span>BACK</span>
+    </button>
+  );
+};
 
 export default function FileContainer({
-  currentPath,
   playerSettings,
 }: {
-  currentPath: string[];
   playerSettings: PlayerSettingsType;
 }) {
-  const [fileList, setFileList] = useState<string[]>([]);
+  const [currentPath, setCurrentPath] = useState<string[]>([]);
+  const [fileList, setFileList] = useState<FSType[]>([]);
+  const [selectedFolder, setSelectedFolder] = useState<SelectedFolderType>({
+    folderIndex: null,
+    isInFolder: false,
+  });
   const [playback, setPlayback] = useState({
     isPaused: false,
     currentFile: '',
@@ -23,7 +53,14 @@ export default function FileContainer({
 
   const pausedState = useElectronState('RESOURCE_PAUSED', false);
 
+  useElectronHandler('DIR_CHANGE', (args: EventArgs) => {
+    if (args?.filePaths) {
+      setCurrentPath((args as EventArgs).filePaths as string[]);
+    }
+  });
+
   useEffect(() => {
+    // This is is a big mess.. as is most of this app! So i guess this is fine.. TODO: REWRITE
     if (Math.ceil(playback.value) === 0 || Math.ceil(playback.max) === 0) {
       return;
     }
@@ -33,18 +70,58 @@ export default function FileContainer({
         playAudio(playback.currentFile)();
         return;
       }
+
       if (!playerSettings.autoplay) {
         handlePause();
         return;
       }
-      const currentFileIdx = fileList.findIndex(
-        (val) => val === playback.currentFile
-      );
 
-      const nextFileIdx =
-        currentFileIdx + 1 > fileList.length - 1 ? 0 : currentFileIdx + 1;
+      const filesOnly = fileList.filter((el) => !el.directory);
 
-      playAudio(fileList[nextFileIdx])();
+      let path: string;
+
+      // SO! Instead of being smart i wrote this assshittery.
+      // In short: This if statement decides if were working with mp3 files of
+      // the directory! If we are! We are setting the path accordingly!
+      // dont mind the double nextFileIdx and currentFileIdx. They are block scoped.
+      if (selectedFolder.folderIndex !== null) {
+        const foundFolder = fileList[selectedFolder.folderIndex];
+        if (!foundFolder.directory) {
+          return;
+        }
+
+        const currentFileIdx = foundFolder.files.findIndex(
+          (val) =>
+            val.name ===
+            playback.currentFile.replace(`${foundFolder.name}/`, '')
+        );
+
+        const nextFileIdx =
+          currentFileIdx + 1 > foundFolder.files.length - 1
+            ? 0
+            : currentFileIdx + 1;
+        if (
+          fileList[selectedFolder.folderIndex]?.name &&
+          foundFolder.files[nextFileIdx]?.name
+        ) {
+          path = `${fileList[selectedFolder.folderIndex].name}/${
+            foundFolder.files[nextFileIdx].name
+          }`;
+          console.log(11, path);
+        }
+      } else {
+        const currentFileIdx = filesOnly.findIndex(
+          (val) => val.name === playback.currentFile
+        );
+
+        const nextFileIdx =
+          currentFileIdx + 1 > filesOnly.length - 1 ? 0 : currentFileIdx + 1;
+
+        path = filesOnly[nextFileIdx]?.name;
+        console.log(11, path);
+      }
+
+      path! && playAudio(path)();
     }
   }, [playback.value, playback.max]);
 
@@ -83,15 +160,15 @@ export default function FileContainer({
     if (!path) return;
 
     const files = await window.electron.getFileList(path);
-
-    setFileList(
-      files.filter((name) => {
-        return ['mp3'].indexOf(name.split('.').pop() ?? '') >= 0;
-      })
+    const sortedByDirectoriesFirst = files.sort((el) =>
+      el.directory ? -1 : 1
     );
+
+    setFileList(sortedByDirectoriesFirst);
   }
 
   function playAudio(file: string, seek?: number) {
+    console.log(444, file);
     return () => {
       setPlayback((prev) => ({
         ...prev,
@@ -103,28 +180,75 @@ export default function FileContainer({
     };
   }
 
-  const showFiles = useMemo(() => {
+  const showSelectableElements = useMemo(() => {
+    // This whole thing is a mess! too bad! TODO: REWRITE
     const components: JSX.Element[] = Array.from({ length: fileList.length });
 
-    components.forEach((_name, index: number) => {
+    const selectedElementComponentFn = (element: FSType, index: number) => {
+      // this is a mess but i do not care ;)
+      const path =
+        selectedFolder.folderIndex !== null
+          ? `${fileList[selectedFolder.folderIndex].name}/${element.name}`
+          : element.name;
+
+      const destinedColor = element.directory
+        ? '#D7C68F'
+        : playback.currentFile === path
+        ? '#6495ED'
+        : undefined;
+
       components[index] = (
         <button
           className="button-26 button-width-90"
           style={{
-            background:
-              playback.currentFile === fileList[index] ? '#6495ED' : undefined,
-            color: 'white',
+            background: destinedColor,
+            color: element.directory ? '#354757' : 'white',
+            display: 'flex',
+            flexDirection: 'row',
           }}
-          key={fileList[index]}
-          onClick={playAudio(fileList[index])}
+          key={element.name}
+          onClick={
+            element.directory
+              ? () =>
+                  setSelectedFolder({ folderIndex: index, isInFolder: true })
+              : playAudio(path)
+          }
         >
-          {fileList[index]}
+          {element.directory && <div style={{ marginRight: '4px' }}>📁</div>}
+          <span>{element.name}</span>
         </button>
       );
-    });
+    };
+
+    if (selectedFolder.folderIndex !== null) {
+      // In case we have a folder currently selected
+      // We draw back btn and MP3 files in the directory. (If there are any)
+      const foundFolder = fileList[selectedFolder.folderIndex];
+
+      if (foundFolder.directory) {
+        if (selectedFolder.isInFolder) {
+          foundFolder.files.forEach(selectedElementComponentFn);
+        }
+
+        return [
+          <BackButton
+            onPress={() =>
+              setSelectedFolder({ folderIndex: null, isInFolder: false })
+            }
+          />,
+          ...components,
+        ];
+      }
+
+      setSelectedFolder({ folderIndex: null, isInFolder: false });
+
+      return components;
+    }
+
+    fileList.forEach(selectedElementComponentFn);
 
     return components;
-  }, [currentPath, fileList, playback.currentFile]);
+  }, [currentPath, fileList, playback.currentFile, selectedFolder]);
 
   const sliderOnChange = (e: any) => {
     setPlayback({ ...playback, value: Number(e.target.value) });
@@ -174,7 +298,7 @@ export default function FileContainer({
           {pausedState ? '⏸' : '⏵'}
         </button>
       </div>
-      <div className="file-holder">{showFiles}</div>
+      <div className="file-holder">{showSelectableElements}</div>
     </div>
   );
 }

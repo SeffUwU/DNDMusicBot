@@ -9,26 +9,18 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import log from 'electron-log';
-import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import { DiscordClientInteraction } from './discord/discordClientInteractionClass';
 import FileManagerService from './fileManager.service';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
-class AppUpdater {
-  constructor() {
-    log.transports.file.level = 'info';
-    autoUpdater.logger = log;
-    autoUpdater.checkForUpdatesAndNotify();
-  }
-}
-
 let mainWindow: BrowserWindow | null = null;
 
 ipcMain.handle('getFileList', async (event, ...args) => {
-  const list = await FileManagerService.getAudioFilesList(args[0] as string);
+  const list = await FileManagerService.getAudioFilesAndSubDirectories(
+    args[0] as string
+  );
 
   return list;
 });
@@ -111,6 +103,7 @@ const createWindow = async () => {
     show: false,
     width: 1024,
     height: 728,
+    frame: true,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       preload: app.isPackaged
@@ -152,8 +145,7 @@ const createWindow = async () => {
   DiscordClientInteraction.mainWindow = mainWindow;
 };
 
-
-
+app.commandLine.appendSwitch('lang', 'en-US');
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even

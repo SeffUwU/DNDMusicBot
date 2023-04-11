@@ -1,12 +1,10 @@
 import {
   app,
   BrowserWindow,
-  ipcMain,
   Menu,
   MenuItemConstructorOptions,
   shell,
 } from 'electron';
-import { AppConfig } from './config/config';
 import botInit from './discord/botInit';
 import { musicDialog } from './ts/functions';
 

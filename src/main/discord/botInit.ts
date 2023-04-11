@@ -1,7 +1,8 @@
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { BrowserWindow, IpcMain, ipcMain } from 'electron';
 import { DiscordClientInteraction } from './discordClientInteractionClass';
-import { commandHandlers, deployCommands } from './initCommands';
+import { deployCommands } from './initCommands';
+import { commandHandlers } from './commandHandlers';
 
 export default function botInit(token: string, mainWindow: BrowserWindow) {
   try {
@@ -39,8 +40,6 @@ export default function botInit(token: string, mainWindow: BrowserWindow) {
         guilds: DiscordClientInteraction.getGuilds(),
       });
     });
-
-    // !roll (this is not the command but i just parse the actual message....)
 
     client.login(token);
   } catch (err) {
