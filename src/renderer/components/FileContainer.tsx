@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useElectronHandler, useElectronState } from 'renderer/customHooks';
-import { PlayerSettingsType } from 'renderer/types/types';
+import { padNum } from 'renderer/helpers/helpers';
+import { PlayerSettingsType, getTranslationFn } from 'renderer/types/types';
 import { FSType } from 'sharedTypes/sharedTypes';
 
 type EventArgs = {
@@ -12,7 +13,7 @@ type SelectedFolderType = {
   isInFolder: boolean;
 };
 
-const BackButton = ({ onPress }: { onPress: any }) => {
+const BackButton = ({ onPress, text }: { onPress: any; text: string }) => {
   return (
     <button
       className="button-26 button-width-90"
@@ -25,15 +26,17 @@ const BackButton = ({ onPress }: { onPress: any }) => {
       key={'back'}
       onClick={onPress}
     >
-      <span>BACK</span>
+      <span>{text}</span>
     </button>
   );
 };
 
 export default function FileContainer({
   playerSettings,
+  getTranslation,
 }: {
   playerSettings: PlayerSettingsType;
+  getTranslation: getTranslationFn;
 }) {
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [fileList, setFileList] = useState<FSType[]>([]);
@@ -128,6 +131,7 @@ export default function FileContainer({
   useElectronHandler(
     'RESOURCE_STARTED',
     ({ maxDuration, seek }: { maxDuration: number; seek: number }) => {
+      console.log(maxDuration, seek);
       setPlayback((prev) => ({
         ...prev,
         value: seek ?? 0,
@@ -235,6 +239,7 @@ export default function FileContainer({
             onPress={() =>
               setSelectedFolder({ folderIndex: null, isInFolder: false })
             }
+            text={getTranslation('goBack')}
           />,
           ...components,
         ];
@@ -248,7 +253,13 @@ export default function FileContainer({
     fileList.forEach(selectedElementComponentFn);
 
     return components;
-  }, [currentPath, fileList, playback.currentFile, selectedFolder]);
+  }, [
+    currentPath,
+    fileList,
+    playback.currentFile,
+    selectedFolder,
+    getTranslation,
+  ]);
 
   const sliderOnChange = (e: any) => {
     setPlayback({ ...playback, value: Number(e.target.value) });
@@ -263,6 +274,17 @@ export default function FileContainer({
     window.electron.togglePause();
   }
 
+  const playbackValue = useMemo(() => {
+    const { value } = playback;
+
+    const hours = Math.floor(value / 60 / 60);
+    const hoursSeconds = hours * 60 * 60;
+    const minutes = Math.floor((value - hoursSeconds) / 60);
+    const seconds = Math.floor(value - hoursSeconds - minutes * 60);
+
+    return `${padNum(hours)}:${padNum(minutes)}:${padNum(seconds)}`;
+  }, [playback]);
+
   return (
     <div className="width33p file-container">
       <div className="top-bar-container">
@@ -271,7 +293,7 @@ export default function FileContainer({
           role="button"
           onClick={() => getFileList(currentPath[0])}
         >
-          RESCAN
+          {getTranslation('rescan')}
         </button>
         <div className="duration-container">
           <input
@@ -283,11 +305,7 @@ export default function FileContainer({
             onChange={sliderOnChange}
             onMouseUp={sliderOnMouseUp}
           />
-          <span style={{ color: 'white' }}>{`${Math.floor(
-            playback.value / 60
-          )}:${String(
-            playback.value - Math.floor(playback.value / 60) * 60
-          ).padStart(2, '0')}`}</span>
+          <span style={{ color: 'white' }}>{playbackValue}</span>
         </div>
         <button
           className="button-26"

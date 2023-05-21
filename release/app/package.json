@@ -1,6 +1,6 @@
 {
   "name": "sefa.dndbot",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Music bot for H010's campaigns!",
   "license": "MIT",
   "author": {
@@ -19,7 +19,6 @@
     "@discordjs/voice": "^0.16.0",
     "discord.js": "^14.9.0",
     "ffmpeg-static": "^5.1.0",
-    "ffprobe-static": "^3.1.0",
     "fluent-ffmpeg": "^2.1.2",
     "sodium-native": "^4.0.1"
   }

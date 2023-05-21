@@ -23,6 +23,6 @@ export const useElectronHandler = function <T>(
 ) {
   useEffect(() => {
     const eventClearer = window.electron.ipcRenderer.on(eventName, cb);
-    () => eventClearer;
+    return () => eventClearer();
   }, [dependency]);
 };
