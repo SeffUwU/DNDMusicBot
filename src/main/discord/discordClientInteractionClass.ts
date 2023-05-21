@@ -14,7 +14,6 @@ import { normalize } from 'path';
 import { PassThrough } from 'stream';
 
 const FfmpegPath = require('ffmpeg-static');
-const FfpropePath = require('ffprobe-static');
 
 fluentFfmpeg.setFfmpegPath(
   app.isPackaged
@@ -151,57 +150,57 @@ export class DiscordClientInteraction {
   public static playResource(path: string, seekTime: number = 0) {
     try {
       path = String(normalize(path));
-      console.log(path);
-      fluentFfmpeg(path).ffprobe((err, data) => {
-        if (err) {
-          console.log(err);
-          this.emitRenderError(
-            new Error(
-              `Error probing file: ${path}. \nThis may be because file lacks metadata or is not probable. `
-            )
-          );
-        }
 
-        if (this.currentFfmpegCommand) {
-          this.currentFfmpegCommand.kill('');
-          this.currentFfmpegCommand = null;
-        }
+      if (this.currentFfmpegCommand) {
+        this.currentFfmpegCommand.kill('');
+        this.currentFfmpegCommand = null;
+      }
 
-        if (this.currentOpenStream) {
-          this.audioPlayer.stop(true);
-          this.currentOpenStream.end();
-        }
+      if (this.currentOpenStream) {
+        this.audioPlayer.stop(true);
+        this.currentOpenStream.end();
+      }
 
-        this.currentOpenStream = new PassThrough({ autoDestroy: true });
+      this.currentOpenStream = new PassThrough({ autoDestroy: true });
 
-        const maxDuration = Number(data.format.duration);
-        const newResource = createAudioResource(this.currentOpenStream);
+      const newResource = createAudioResource(this.currentOpenStream);
 
-        this.currentFfmpegCommand = fluentFfmpeg(path)
-          .setStartTime(seekTime ?? 0) // <-- making sure it's 0
-          .format('mp3')
-          .output(this.currentOpenStream, { end: true })
-          .on('error', (err: Error) => {
-            // Weird. but i couldn't get it to close properly..
-            if (err.message === 'Error: Output stream error: Premature close') {
-              return;
-            }
-            this.emitRenderError(
-              new Error(`Error creating stream for file: ${path} `)
-            );
+      let maxDuration: number = Math.round(newResource.playbackDuration / 1000);
+
+      this.currentFfmpegCommand = fluentFfmpeg(path)
+        .noVideo()
+        .format('mp3')
+        .setStartTime(seekTime ?? 0)
+        .output(this.currentOpenStream, { end: true })
+        .on('codecData', (data) => {
+          const split = data.duration.split(':');
+          const hours = Number(split[0]);
+          const minutes = Number(split[1]);
+          const seconds = Number(split[2]);
+
+          maxDuration = Math.round(hours * 60 * 60 + minutes * 60 + seconds);
+
+          this.audioPlayer.play(newResource);
+          this.isPlaying = true;
+          this.emitRender('RESOURCE_STARTED', {
+            maxDuration,
+            seek: seekTime,
           });
+          this.emitRender('RESOURCE_PAUSED', true);
+        })
+        .on('error', (err: any) => {
+          // Weird. but i couldn't get it to close properly..
+          if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') {
+            return;
+          }
+          console.error(err);
+          this.emitRenderError(
+            new Error(`Error creating stream for file: ${path} `)
+          );
+        })
+        .on('start', () => {});
 
-        this.currentFfmpegCommand.run();
-
-        this.audioPlayer.play(newResource);
-        this.isPlaying = true;
-
-        this.emitRender('RESOURCE_STARTED', {
-          maxDuration,
-          seek: seekTime,
-        });
-        this.emitRender('RESOURCE_PAUSED', true);
-      });
+      this.currentFfmpegCommand.run();
     } catch (err) {
       console.log(err);
       this.emitRenderError(

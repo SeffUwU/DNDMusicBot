@@ -7,10 +7,7 @@ declare global {
     electron: {
       ipcRenderer: {
         sendMessage(channel: Channels, args: unknown[]): void;
-        on(
-          channel: Channels,
-          func: (...args: any[]) => void
-        ): (() => void) | undefined;
+        on(channel: Channels, func: (...args: any[]) => void): () => void;
         once(channel: Channels, func: (...args: unknown[]) => void): void;
       };
       getFileList: (path: string) => Promise<FSType[]>;
@@ -19,6 +16,7 @@ declare global {
       togglePause: () => void;
       playResource: (path: string, seek?: number) => void;
       isClientSet: () => Promise<boolean>;
+      startWithToken: (token: string, saveToken: boolean) => void;
     };
   }
 }

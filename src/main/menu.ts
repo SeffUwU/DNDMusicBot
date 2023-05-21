@@ -5,6 +5,8 @@ import {
   MenuItemConstructorOptions,
   shell,
 } from 'electron';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { homedir } from 'os';
 import botInit from './discord/botInit';
 import { musicDialog } from './ts/functions';
 
@@ -207,13 +209,29 @@ export default class MenuBuilder {
             },
           },
           {
-            label: '&Start',
+            label: '&Start (uses saved)',
             accelerator: 'Ctrl+S',
             click: () => {
-              botInit(
-                'MTAzMzA3MzQ2MTg0MjY5MDE1MA.GB-QJU.WjGc6C3AN4OXo4-9z4gnCTtoG4DvIBNk5Zc2DI',
-                this.mainWindow
-              );
+              var home = homedir();
+              var folder = home + '/Documents/h010MusicBot';
+              const tokenPath = folder + '/token.txt';
+
+              if (!existsSync(folder)) {
+                mkdirSync(folder, { recursive: true });
+              }
+
+              if (!existsSync(tokenPath)) {
+                writeFileSync(tokenPath, '');
+              }
+
+              const token = String(readFileSync(folder + '/token.txt'));
+              if (!token.length) {
+                console.log(222, token);
+                this.mainWindow.webContents.send('MISSING_TOKEN_ERR');
+                return;
+              }
+
+              botInit(token, this.mainWindow);
             },
           },
           {
@@ -225,15 +243,15 @@ export default class MenuBuilder {
           },
         ],
       },
-      {
-        label: '&Options',
-        submenu: [
-          {
-            label: '&Set Your token',
-            accelerator: 'Ctrl+S',
-          },
-        ],
-      },
+      // {
+      //   label: '&Options',
+      //   submenu: [
+      //     {
+      //       label: '&Set Your token',
+      //       accelerator: 'Ctrl+S',
+      //     },
+      //   ],
+      // },
     ];
 
     return templateDefault;

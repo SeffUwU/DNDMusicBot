@@ -39,7 +39,6 @@ body {
   flex-wrap: wrap;
   justify-content: space-around;
   height: calc(100% - 4.5em);
-
 }
 
 .width33p {
@@ -63,7 +62,6 @@ body {
   overflow: scroll;
   height: calc(100% - 100px);
   overflow-x: hidden;
-
 }
 
 ::-webkit-scrollbar {
@@ -176,11 +174,11 @@ body {
   user-select: none;
 }
 .unselectable {
-    -webkit-user-drag: none;
-    user-select: none;
-    -moz-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
 
 @keyframes rotation {
@@ -215,7 +213,7 @@ body {
   height: 24px;
   display: flex;
   flex-direction: row;
-  justify-content: flex-end ;
+  justify-content: flex-end;
   border-bottom: 2px solid #2c313c;
   -webkit-app-region: drag;
 }
@@ -234,7 +232,14 @@ body {
   flex-direction: row;
   border-bottom: 2px solid #2c313c;
 }
-
+.top-bar-space-between {
+  width: 100%;
+  background-color: #282c34;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+}
 /* The switch - the box around the slider */
 .switch {
   position: relative;
@@ -259,28 +264,28 @@ body {
   right: 0;
   bottom: 0;
   background-color: #ccc;
-  -webkit-transition: .15s;
-  transition: .15s;
+  -webkit-transition: 0.15s;
+  transition: 0.15s;
 }
 
 .slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 12px;
   width: 12px;
   left: 4px;
   bottom: 4px;
   background-color: white;
-  -webkit-transition: .15s;
-  transition: .15s;
+  -webkit-transition: 0.15s;
+  transition: 0.15s;
 }
 
 input:checked + .slider {
-  background-color: #2196F3;
+  background-color: #2196f3;
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #2196F3;
+  box-shadow: 0 0 1px #2196f3;
 }
 
 input:checked + .slider:before {
@@ -304,4 +309,32 @@ input:checked + .slider:before {
   justify-content: space-between;
   margin-top: 5px;
   margin-left: 10px;
+}
+
+.lang-select-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-right: 4px;
+}
+
+.langSelect {
+  margin: 0;
+  margin-top: 4px;
+  border: none;
+  background-color: #0a46e4;
+  color: white;
+  width: 100px;
+  border-radius: 2px;
+  transition: all linear 0.1s;
+}
+
+.langSelect:hover {
+  background-color: #1652f0;
+  cursor: pointer;
+}
+
+.langSelect:active {
+  transition: all linear 0.05s;
+  background-color: #2196f3;
 }

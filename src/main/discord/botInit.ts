@@ -43,6 +43,7 @@ export default function botInit(token: string, mainWindow: BrowserWindow) {
 
     client.login(token);
   } catch (err) {
+    console.error(err);
     mainWindow.webContents.send('ERROR_HANDLE', err);
   }
 }

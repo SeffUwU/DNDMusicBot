@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useElectronState } from 'renderer/customHooks';
-import { shortGuild } from 'renderer/types/types';
+import { getTranslationFn, shortGuild } from 'renderer/types/types';
 
 export default function BotContainer({
   currentGuilds,
   setCurrentGuilds,
   isBotStarted,
+  getTranslation,
 }: {
   currentGuilds: shortGuild[];
   setCurrentGuilds: React.Dispatch<React.SetStateAction<shortGuild[]>>;
   isBotStarted: boolean;
+  getTranslation: getTranslationFn;
 }) {
   const [selectedGuild, setSelectedGuild] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export default function BotContainer({
         onClick={() => setSelectedGuild(null)}
         key={guild?.id}
       >
-        НАЗАД
+        {getTranslation('goBack')}
       </button>,
     ];
 
@@ -121,7 +123,7 @@ export default function BotContainer({
           </span>
         </div>
         <button className="button-26" role="button" onClick={refreshGuilds}>
-          REFRESH GUILDS
+          {getTranslation('refreshGuilds')}
         </button>
       </div>
       <div className="file-holder">

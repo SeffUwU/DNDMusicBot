@@ -9,7 +9,10 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import * as fs from 'fs';
+import { homedir } from 'os';
 import path from 'path';
+import botInit from './discord/botInit';
 import { DiscordClientInteraction } from './discord/discordClientInteractionClass';
 import FileManagerService from './fileManager.service';
 import MenuBuilder from './menu';
@@ -23,6 +26,20 @@ ipcMain.handle('getFileList', async (event, ...args) => {
   );
 
   return list;
+});
+
+ipcMain.handle('startWithToken', async (event, token, saveToken) => {
+  if (saveToken) {
+    var home = homedir();
+    var folder = home + '/Documents/h010MusicBot';
+    if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder, { recursive: true });
+    }
+
+    fs.writeFileSync(folder + '/token.txt', token, {});
+  }
+
+  botInit(token, mainWindow as BrowserWindow);
 });
 
 ipcMain.handle('isClientSet', async (event, ...args) => {
