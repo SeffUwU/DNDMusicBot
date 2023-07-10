@@ -42,6 +42,29 @@ ipcMain.handle('startWithToken', async (event, token, saveToken) => {
   botInit(token, mainWindow as BrowserWindow);
 });
 
+ipcMain.handle('startSaved', async () => {
+  var home = homedir();
+  var folder = path.join(home, 'Documents', 'h010MusicBot');
+  const tokenPath = path.join(folder, 'token.txt');
+
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+
+  if (!fs.existsSync(tokenPath)) {
+    fs.writeFileSync(tokenPath, '');
+  }
+
+  const token = String(fs.readFileSync(tokenPath));
+
+  if (!token.length) {
+    (mainWindow as BrowserWindow).webContents.send('MISSING_TOKEN_ERR');
+    return;
+  }
+
+  botInit(token, mainWindow as BrowserWindow);
+});
+
 ipcMain.handle('isClientSet', async (event, ...args) => {
   try {
     return DiscordClientInteraction.isClientSet();

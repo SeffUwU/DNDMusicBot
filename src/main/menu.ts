@@ -226,7 +226,6 @@ export default class MenuBuilder {
 
               const token = String(readFileSync(folder + '/token.txt'));
               if (!token.length) {
-                console.log(222, token);
                 this.mainWindow.webContents.send('MISSING_TOKEN_ERR');
                 return;
               }

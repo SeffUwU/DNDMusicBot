@@ -2,6 +2,8 @@ import { getTranslationFn } from 'renderer/types/types';
 import './startBotScreen.css';
 import { useState } from 'react';
 
+const SHOW_WARNING_TIMEOUT_TIME = 15000; // 15 seconds
+
 export default function StartBotScreen({
   getTranslation,
 }: {
@@ -9,6 +11,42 @@ export default function StartBotScreen({
 }) {
   const [token, setToken] = useState('');
   const [saveToken, setSaveToken] = useState(true);
+  const [isLoading, setLoading] = useState(false);
+  const [isTooLong, setTooLong] = useState(false);
+
+  if (isLoading) {
+    !isTooLong &&
+      setTimeout(() => {
+        setTooLong(true);
+      }, SHOW_WARNING_TIMEOUT_TIME);
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '50%',
+        }}
+      >
+        <div className="lds-dual-ring" style={{ marginBottom: '40px' }}></div>
+        <span>{getTranslation('loading')}</span>
+        {isTooLong && (
+          <span
+            style={{
+              width: '400px',
+              textAlign: 'center',
+              marginTop: '40px',
+              fontSize: '18px',
+            }}
+          >
+            {getTranslation('tooLongWarning')}
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="start-bot-container">
@@ -38,16 +76,33 @@ export default function StartBotScreen({
           checked={saveToken}
           onChange={(e) => setSaveToken(e.target.checked)}
         />
-        <label htmlFor="saveToken">Сохранить токен?</label>
+        <label htmlFor="saveToken">{getTranslation('saveTokenQ')}</label>
       </div>
       <button
         className="button-26"
         style={{ marginTop: '25px', width: '300px' }}
         onClick={() => {
           window.electron.startWithToken(token, saveToken);
+          setLoading(true);
         }}
       >
         {getTranslation('startBot')}
+      </button>
+
+      <button
+        className="button-26"
+        style={{
+          marginTop: '25px',
+          width: '300px',
+          backgroundColor: 'green',
+          borderColor: 'greenyellow',
+        }}
+        onClick={() => {
+          window.electron.startWithSavedToken();
+          setLoading(true);
+        }}
+      >
+        {getTranslation('startBotSaved')}
       </button>
     </div>
   );

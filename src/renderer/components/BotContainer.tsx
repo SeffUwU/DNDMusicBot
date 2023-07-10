@@ -15,11 +15,16 @@ export default function BotContainer({
 }) {
   const [selectedGuild, setSelectedGuild] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+
   const currentVoiceChannel = useElectronState<shortGuild>('VOICE_CHANGED', {
     id: '',
     name: '',
     channels: null,
   });
+
+  useEffect(() => {
+    !currentGuilds.length && refreshGuilds();
+  }, []);
 
   useEffect(() => {
     if (!selectedGuild || !selectedVoice) {
@@ -31,7 +36,22 @@ export default function BotContainer({
 
   function showGuilds() {
     if (!currentGuilds?.length) {
-      return;
+      return (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '22%',
+          }}
+        >
+          <div
+            className="lds-dual-ring-small"
+            style={{ marginBottom: '40px' }}
+          ></div>
+        </div>
+      );
     }
     return currentGuilds.map((guild) => (
       <button

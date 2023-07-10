@@ -17,6 +17,7 @@ declare global {
       playResource: (path: string, seek?: number) => void;
       isClientSet: () => Promise<boolean>;
       startWithToken: (token: string, saveToken: boolean) => void;
+      startWithSavedToken: () => void;
     };
   }
 }

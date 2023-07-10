@@ -21,7 +21,6 @@ contextBridge.exposeInMainWorld('electron', {
   getFileList: (path: string) => ipcRenderer.invoke('getFileList', path),
   fetchGuilds: () => ipcRenderer.invoke('fetchGuilds'),
   connectVoice: (guildId: string, voiceId: string) => {
-    console.log('invoke');
     ipcRenderer.invoke('connectVoice', { guildId, voiceId });
   },
   togglePause: () => ipcRenderer.invoke('togglePause'),
@@ -30,4 +29,5 @@ contextBridge.exposeInMainWorld('electron', {
   isClientSet: () => ipcRenderer.invoke('isClientSet'),
   startWithToken: (token: string, saveToken: boolean) =>
     ipcRenderer.invoke('startWithToken', token, saveToken),
+  startWithSavedToken: () => ipcRenderer.invoke('startSaved'),
 });

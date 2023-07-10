@@ -86,16 +86,19 @@ export default function FileContainer({
       // SO! Instead of being smart i wrote this assshittery.
       // In short: This if statement decides if were working with mp3 files of
       // the directory! If we are! We are setting the path accordingly!
-      // dont mind the double nextFileIdx and currentFileIdx. They are block scoped.
+      // don't mind the double nextFileIdx and currentFileIdx. They are block scoped.
+      //
+      // july 10 2023 upd: wow this truly is assshittery..
       if (selectedFolder.folderIndex !== null) {
         const foundFolder = fileList[selectedFolder.folderIndex];
+
         if (!foundFolder.directory) {
           return;
         }
 
         const currentFileIdx = foundFolder.files.findIndex(
-          (val) =>
-            val.name ===
+          (file) =>
+            file.name ===
             playback.currentFile.replace(`${foundFolder.name}/`, '')
         );
 
@@ -110,18 +113,16 @@ export default function FileContainer({
           path = `${fileList[selectedFolder.folderIndex].name}/${
             foundFolder.files[nextFileIdx].name
           }`;
-          console.log(11, path);
         }
       } else {
         const currentFileIdx = filesOnly.findIndex(
-          (val) => val.name === playback.currentFile
+          (file) => file.name === playback.currentFile
         );
 
         const nextFileIdx =
           currentFileIdx + 1 > filesOnly.length - 1 ? 0 : currentFileIdx + 1;
 
         path = filesOnly[nextFileIdx]?.name;
-        console.log(11, path);
       }
 
       path! && playAudio(path)();
@@ -131,7 +132,6 @@ export default function FileContainer({
   useElectronHandler(
     'RESOURCE_STARTED',
     ({ maxDuration, seek }: { maxDuration: number; seek: number }) => {
-      console.log(maxDuration, seek);
       setPlayback((prev) => ({
         ...prev,
         value: seek ?? 0,
@@ -172,7 +172,6 @@ export default function FileContainer({
   }
 
   function playAudio(file: string, seek?: number) {
-    console.log(444, file);
     return () => {
       setPlayback((prev) => ({
         ...prev,
@@ -226,7 +225,7 @@ export default function FileContainer({
 
     if (selectedFolder.folderIndex !== null) {
       // In case we have a folder currently selected
-      // We draw back btn and MP3 files in the directory. (If there are any)
+      // We draw the "go back btn" and MP3 files in the directory. (If there are any)
       const foundFolder = fileList[selectedFolder.folderIndex];
 
       if (foundFolder.directory) {
