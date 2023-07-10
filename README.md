@@ -25,7 +25,6 @@ npm start
 ## Make it
 
 ```bash
-# DO THE "Make It Dev"
 cd ./DNDMusicBot
 
 npm ci
