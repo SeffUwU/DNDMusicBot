@@ -1,3 +1,4 @@
+import { ChangeEvent } from 'react';
 import { locale } from 'renderer/locale/locale';
 
 export type shortGuild = {
@@ -14,3 +15,12 @@ export type PlayerSettingsType = {
 export type allowedLocale = 'en' | 'ru';
 export type localeKeys = keyof typeof locale[allowedLocale];
 export type getTranslationFn = (key: localeKeys) => string;
+
+export type DrillThruProps = {
+  getTranslation: getTranslationFn;
+  onSettingChange: (
+    setting: string
+  ) => (event: ChangeEvent<HTMLInputElement>) => void;
+  playerSettings: PlayerSettingsType;
+  setLanguage: React.Dispatch<React.SetStateAction<allowedLocale>>;
+};

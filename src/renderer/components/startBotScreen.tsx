@@ -27,6 +27,8 @@ export default function StartBotScreen({
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
+          alignSelf: 'center',
+          width: '100%',
           height: '50%',
         }}
       >

@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import botInit from './discord/botInit';
 import { musicDialog } from './ts/functions';
+import { DiscordClientInteraction } from './discord/discordClientInteractionClass';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
   selector?: string;
@@ -231,6 +232,12 @@ export default class MenuBuilder {
               }
 
               botInit(token, this.mainWindow);
+            },
+          },
+          {
+            label: '&Test YT',
+            click: () => {
+              DiscordClientInteraction.playYtDLAudio('');
             },
           },
           {

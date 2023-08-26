@@ -10,8 +10,9 @@ import { Client, Collection, Guild, GuildBasedChannel } from 'discord.js';
 
 import { BrowserWindow, app } from 'electron';
 import fluentFfmpeg, { FfmpegCommand } from 'fluent-ffmpeg';
+import { YtDlModule } from '../ytdl/ytdl.module';
 import { normalize } from 'path';
-import { PassThrough } from 'stream';
+import { PassThrough, Readable, Writable } from 'stream';
 
 const FfmpegPath = require('ffmpeg-static');
 
@@ -29,6 +30,7 @@ export class DiscordClientInteraction {
   private static currentFfmpegCommand: FfmpegCommand | null;
   private static currentOpenStream: PassThrough | null;
   public static mainWindow: BrowserWindow;
+  public static currentOpenYTDLStream: Readable;
 
   public static setClient(setClient: Client) {
     if (this.client) {
@@ -227,5 +229,66 @@ export class DiscordClientInteraction {
 
   public static emitRenderError(data: any) {
     this.emitRender('MAIN_PROCESS_ERROR', data);
+  }
+
+  public static playYtDLAudio(url: string, seekTime: number = 0) {
+    if (this.currentFfmpegCommand) {
+      this.currentFfmpegCommand?.kill('');
+      this.currentFfmpegCommand = null;
+    }
+
+    if (this.currentOpenStream) {
+      this.audioPlayer.stop(true);
+      this.currentOpenStream.end();
+    }
+
+    if (this.currentOpenYTDLStream) {
+      this.currentOpenYTDLStream.destroy();
+    }
+
+    this.currentOpenStream = new PassThrough({ autoDestroy: true });
+
+    this.currentOpenYTDLStream = YtDlModule.createStream(url, {
+      begin: '00:00:22.000',
+    });
+
+    this.currentFfmpegCommand = fluentFfmpeg({
+      source: this.currentOpenYTDLStream,
+    })
+      .withAudioCodec('libmp3lame')
+      .format('mp3')
+      .output(this.currentOpenStream, { end: true })
+      .on('codecData', (data) => {
+        // const split = data.duration.split(':');
+        // const hours = Number(split[0]);
+        // const minutes = Number(split[1]);
+        // const seconds = Number(split[2]);
+        // // maxDuration = Math.round(hours * 60 * 60 + minutes * 60 + seconds);
+        // !this.isPlaying && this.audioPlayer.play(newResource);
+        // this.isPlaying = true;
+        // this.emitRender('RESOURCE_STARTED', {
+        // maxDuration,
+        // seek: seekTime,
+        // });
+        // this.emitRender('RESOURCE_PAUSED', true);
+      });
+    // .on('error', (err: any) => {
+    //   // Weird. but i couldn't get it to close properly..
+    //   if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') {
+    //     return;
+    //   }
+    //   console.error(err);
+    //   // this.emitRenderError(
+    //   //   new Error(`Error creating stream for file: ${path} `)
+    //   // );
+    // })
+    // .on('start', () => {});
+
+    this.currentFfmpegCommand.run();
+
+    const newResource = createAudioResource(this.currentOpenStream);
+
+    console.log(newResource.playbackDuration);
+    this.audioPlayer.play(newResource);
   }
 }

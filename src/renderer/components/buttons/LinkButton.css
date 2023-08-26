@@ -1,0 +1,10 @@
+.link-button {
+  font-size: 18px;
+  background-color: #323842;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #282c34;
+  text-decoration: none;
+  color: #fff;
+  cursor: pointer;
+}

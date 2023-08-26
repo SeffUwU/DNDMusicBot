@@ -38,7 +38,8 @@ body {
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: space-around;
-  height: calc(100% - 4.5em);
+  width: 100%;
+  height: calc(100% - 90px);
 }
 
 .width33p {
@@ -165,14 +166,6 @@ body {
   color: white;
 }
 
-.botLogo {
-  display: inline-block;
-  width: 40px;
-  height: 40px;
-  margin-left: 10px;
-  animation: rotation 3s infinite linear;
-  user-select: none;
-}
 .unselectable {
   -webkit-user-drag: none;
   user-select: none;
@@ -222,24 +215,7 @@ body {
   padding-inline: 5px;
   background-color: #21252b;
 }
-.top-bar-control {
-  width: 100%;
-  background-color: #282c34;
-  margin: 0;
-  padding: 0;
-  height: 48px;
-  display: flex;
-  flex-direction: row;
-  border-bottom: 2px solid #2c313c;
-}
-.top-bar-space-between {
-  width: 100%;
-  background-color: #282c34;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: space-between;
-}
+
 /* The switch - the box around the slider */
 .switch {
   position: relative;

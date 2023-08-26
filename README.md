@@ -10,12 +10,17 @@ This is a Discord bot control program which allows to play mp3 files saved local
 
 H010 is our DM and he gave me this idea.. thus why it is called H010's DnDMusicBot
 
+## You will probably need:
+
+- Python installed on your PC
+- windows-build-tools
+
 ## Start it dev:
 
 ```bash
 cd ./DNDMusicBot
 
-npm ci
+npm i
 
 npm start
 
