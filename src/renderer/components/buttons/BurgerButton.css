@@ -1,0 +1,24 @@
+.burger-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3;
+  -webkit-app-region: no-drag;
+  user-select: none;
+}
+
+.burger-button img {
+  height: 25px;
+  margin-left: 5px;
+  margin-right: 5px;
+  color: white;
+  transition: all 0.2s cubic-bezier(0.83, 0, 0.17, 1);
+  -webkit-app-region: no-drag;
+  -webkit-user-drag: none;
+}
+
+.burger-button img:hover {
+  transform: scaleY(1.1);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}

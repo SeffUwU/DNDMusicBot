@@ -1,8 +1,11 @@
 import { Client, Events, GatewayIntentBits } from 'discord.js';
-import { BrowserWindow, IpcMain, ipcMain } from 'electron';
+import { BrowserWindow } from 'electron';
+import * as fs from 'fs';
+import { homedir } from 'os';
+import { commandHandlers } from './commandHandlers';
 import { DiscordClientInteraction } from './discordClientInteractionClass';
 import { deployCommands } from './initCommands';
-import { commandHandlers } from './commandHandlers';
+let botStartedInterval: setInterval | undefined;
 
 export default function botInit(token: string, mainWindow: BrowserWindow) {
   try {
@@ -22,12 +25,12 @@ export default function botInit(token: string, mainWindow: BrowserWindow) {
 
     client.setMaxListeners(0);
 
-    client.once(Events.ClientReady, async (c) => {
-      DiscordClientInteraction.setClient(c);
+    client.once(Events.ClientReady, async (connectedClient) => {
+      DiscordClientInteraction.setClient(connectedClient);
 
-      await deployCommands('1033073461842690150', token, c);
+      await deployCommands('1033073461842690150', token, connectedClient);
 
-      c.on(Events.InteractionCreate, (interaction) => {
+      connectedClient.on(Events.InteractionCreate, (interaction) => {
         if (!interaction.isChatInputCommand()) return;
         switch (interaction.commandName) {
           case 'roll':
@@ -35,12 +38,31 @@ export default function botInit(token: string, mainWindow: BrowserWindow) {
             break;
         }
       });
+      const botInfo = {
+        avatarUrl: connectedClient.user.avatarURL(),
+        name: connectedClient.user.username,
+        id: connectedClient.user.id,
+        isBot: connectedClient.user.bot,
+        isSet: true,
+      };
 
-      mainWindow.webContents.send('BOT_START', {
-        guilds: DiscordClientInteraction.getGuilds(),
-      });
+      const home = homedir();
+      const folder = home + '/Documents/h010MusicBot';
+
+      fs.writeFileSync(folder + '/bot-info.json', JSON.stringify(botInfo));
+
+      DiscordClientInteraction.emitRender('BOT_STARTED', true);
+      DiscordClientInteraction.emitRender('BOT_INFO', botInfo);
+
+      botStartedInterval = setInterval(
+        () => DiscordClientInteraction.emitRender('BOT_STARTED', true),
+        2000
+      );
     });
-
+    client.on(Events.Error, () => {
+      clearInterval(botStartedInterval);
+      DiscordClientInteraction.emitRender('BOT_STARTED', false);
+    });
     client.login(token);
   } catch (err) {
     console.error(err);

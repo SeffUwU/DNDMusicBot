@@ -8,3 +8,8 @@
   color: #fff;
   cursor: pointer;
 }
+
+.link-button:hover {
+  background-color: aliceblue;
+  color: #000;
+}

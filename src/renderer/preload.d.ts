@@ -18,6 +18,9 @@ declare global {
       isClientSet: () => Promise<boolean>;
       startWithToken: (token: string, saveToken: boolean) => void;
       startWithSavedToken: () => void;
+      quit: () => void;
+      fetchLocalBotInfo: () => void;
+      openMusicFolderDialog: () => void;
     };
   }
 }

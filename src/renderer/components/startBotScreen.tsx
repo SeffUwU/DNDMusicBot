@@ -1,6 +1,7 @@
 import { getTranslationFn } from 'renderer/types/types';
 import './startBotScreen.css';
 import { useState } from 'react';
+import { useElectronState } from 'renderer/customHooks';
 
 const SHOW_WARNING_TIMEOUT_TIME = 15000; // 15 seconds
 
@@ -13,8 +14,9 @@ export default function StartBotScreen({
   const [saveToken, setSaveToken] = useState(true);
   const [isLoading, setLoading] = useState(false);
   const [isTooLong, setTooLong] = useState(false);
+  const isTokenError = useElectronState('TOKEN_ERROR', false);
 
-  if (isLoading) {
+  if (isLoading && !isTokenError) {
     !isTooLong &&
       setTimeout(() => {
         setTooLong(true);
@@ -77,6 +79,7 @@ export default function StartBotScreen({
           id="saveToken"
           checked={saveToken}
           onChange={(e) => setSaveToken(e.target.checked)}
+          disabled={isTokenError}
         />
         <label htmlFor="saveToken">{getTranslation('saveTokenQ')}</label>
       </div>
@@ -91,21 +94,23 @@ export default function StartBotScreen({
         {getTranslation('startBot')}
       </button>
 
-      <button
-        className="button-26"
-        style={{
-          marginTop: '25px',
-          width: '300px',
-          backgroundColor: 'green',
-          borderColor: 'greenyellow',
-        }}
-        onClick={() => {
-          window.electron.startWithSavedToken();
-          setLoading(true);
-        }}
-      >
-        {getTranslation('startBotSaved')}
-      </button>
+      {!isTokenError && (
+        <button
+          className="button-26"
+          style={{
+            marginTop: '25px',
+            width: '300px',
+            backgroundColor: 'green',
+            borderColor: 'greenyellow',
+          }}
+          onClick={() => {
+            window.electron.startWithSavedToken();
+            setLoading(true);
+          }}
+        >
+          {getTranslation('startBotSaved')}
+        </button>
+      )}
     </div>
   );
 }

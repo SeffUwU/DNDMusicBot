@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { useElectronHandler, useElectronState } from 'renderer/customHooks';
 import { padNum } from 'renderer/helpers/helpers';
 import { PlayerSettingsType, getTranslationFn } from 'renderer/types/types';
 import { FSType } from 'sharedTypes/sharedTypes';
+import LinkButton from './buttons/LinkButton.component';
 
 type EventArgs = {
   filePaths?: string[];
@@ -16,14 +17,14 @@ type SelectedFolderType = {
 const BackButton = ({ onPress, text }: { onPress: any; text: string }) => {
   return (
     <button
-      className="button-26 button-width-90"
+      className="file-element"
       style={{
         color: 'white',
         display: 'flex',
         flexDirection: 'row',
         backgroundColor: '#3e485a',
       }}
-      key={'back'}
+      key={'back-btn'}
       onClick={onPress}
     >
       <span>{text}</span>
@@ -34,9 +35,13 @@ const BackButton = ({ onPress, text }: { onPress: any; text: string }) => {
 export default function FileContainer({
   playerSettings,
   getTranslation,
+  onSettingChange,
 }: {
   playerSettings: PlayerSettingsType;
   getTranslation: getTranslationFn;
+  onSettingChange: (
+    setting: string
+  ) => (event: ChangeEvent<HTMLInputElement>) => void;
 }) {
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [fileList, setFileList] = useState<FSType[]>([]);
@@ -202,7 +207,7 @@ export default function FileContainer({
 
       components[index] = (
         <button
-          className="button-26 button-width-90"
+          className={`file-element ${element.directory && 'directory'}`}
           style={{
             background: destinedColor,
             color: element.directory ? '#354757' : 'white',
@@ -217,7 +222,6 @@ export default function FileContainer({
               : playAudio(path)
           }
         >
-          {element.directory && <div style={{ marginRight: '4px' }}>📁</div>}
           <span>{element.name}</span>
         </button>
       );
@@ -285,37 +289,95 @@ export default function FileContainer({
   }, [playback]);
 
   return (
-    <div className="width33p file-container">
+    <div className="file-container">
       <div className="top-bar-container">
-        <button
-          className="button-26"
-          role="button"
+        <LinkButton
+          additionalStyle={{ backgroundColor: '#1652f0' }}
           onClick={() => getFileList(currentPath[0])}
         >
           {getTranslation('rescan')}
-        </button>
+        </LinkButton>
         <div className="duration-container">
-          <input
-            type="range"
-            className="duration-slider"
-            min={playback.min}
-            max={playback.max}
-            value={playback.value}
-            onChange={sliderOnChange}
-            onMouseUp={sliderOnMouseUp}
-          />
-          <span style={{ color: 'white' }}>{playbackValue}</span>
+          <div className="slider-container">
+            <input
+              type="range"
+              className="duration-slider"
+              min={playback.min}
+              max={playback.max}
+              value={playback.value}
+              onChange={sliderOnChange}
+              onMouseUp={sliderOnMouseUp}
+            />
+          </div>
+          <div className="slider-controls">
+            <div>
+              <span style={{ color: 'white' }} className="unselectable">
+                {getTranslation('repeatSong')}
+              </span>
+              <label className="switch unselectable">
+                <input
+                  type="checkbox"
+                  checked={playerSettings.repeat}
+                  onChange={onSettingChange('repeat')}
+                />
+                <span className="slider round"></span>
+              </label>
+
+              <span
+                style={{ marginLeft: '10px', color: 'white' }}
+                className="unselectable"
+              >
+                {getTranslation('autoPlay')}
+              </span>
+              <label className="switch unselectable">
+                <input
+                  type="checkbox"
+                  checked={playerSettings.autoplay}
+                  onChange={onSettingChange('autoplay')}
+                />
+                <span className="slider round"></span>
+              </label>
+
+              <span
+                style={{ marginLeft: '10px', color: 'white' }}
+                className="unselectable"
+              >
+                {getTranslation('shuffle')}
+              </span>
+              <label className="switch unselectable">
+                <input
+                  type="checkbox"
+                  checked={playerSettings.shuffle}
+                  onChange={onSettingChange('shuffle')}
+                />
+                <span className="slider round"></span>
+              </label>
+            </div>
+
+            <div className="time-info-container">
+              <span style={{ color: 'white' }}>{playbackValue}</span>
+            </div>
+          </div>
         </div>
-        <button
-          className="button-26"
-          style={{ width: '96px' }}
-          role="button"
+        <LinkButton
+          additionalStyle={{ backgroundColor: '#1652f0' }}
           onClick={handlePause}
         >
           {pausedState ? '⏸' : '⏵'}
-        </button>
+        </LinkButton>
       </div>
-      <div className="file-holder">{showSelectableElements}</div>
+      <div className="file-holder">
+        {showSelectableElements.length ? (
+          showSelectableElements
+        ) : (
+          <LinkButton
+            onClick={() => window.electron.openMusicFolderDialog()}
+            additionalStyle={{ margin: '10px' }}
+          >
+            CHANGE FOLDER
+          </LinkButton>
+        )}
+      </div>
     </div>
   );
 }

@@ -223,7 +223,7 @@ export class DiscordClientInteraction {
     return true;
   }
 
-  private static emitRender(event: string, data: any) {
+  public static emitRender(event: string, data: any) {
     this.mainWindow.webContents.send(event, data);
   }
 
@@ -288,7 +288,6 @@ export class DiscordClientInteraction {
 
     const newResource = createAudioResource(this.currentOpenStream);
 
-    console.log(newResource.playbackDuration);
     this.audioPlayer.play(newResource);
   }
 }

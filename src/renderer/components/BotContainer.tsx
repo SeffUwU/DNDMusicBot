@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useElectronState } from 'renderer/customHooks';
-import { getTranslationFn, shortGuild } from 'renderer/types/types';
+import { TBotInfo, getTranslationFn, shortGuild } from 'renderer/types/types';
+import BotLogo from '../assets/bot_avi.jpg';
+import LoadingIcon from '../assets/loading.gif';
+import LinkButton from './buttons/LinkButton.component';
 
 export default function BotContainer({
   currentGuilds,
@@ -15,6 +18,7 @@ export default function BotContainer({
 }) {
   const [selectedGuild, setSelectedGuild] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [currentlyLoading, setCurrentlyLoading] = useState<string | null>(null);
 
   const currentVoiceChannel = useElectronState<shortGuild>('VOICE_CHANGED', {
     id: '',
@@ -22,9 +26,21 @@ export default function BotContainer({
     channels: null,
   });
 
+  const botInfo = useElectronState<TBotInfo>('BOT_INFO', {
+    avatarUrl: null,
+    id: null,
+    isBot: false,
+    name: null,
+    isSet: false,
+  });
+
   useEffect(() => {
-    !currentGuilds.length && refreshGuilds();
+    window.electron.fetchLocalBotInfo();
   }, []);
+
+  useEffect(() => {
+    isBotStarted && !currentGuilds.length && refreshGuilds();
+  }, [isBotStarted]);
 
   useEffect(() => {
     if (!selectedGuild || !selectedVoice) {
@@ -33,6 +49,10 @@ export default function BotContainer({
 
     window.electron.connectVoice(selectedGuild, selectedVoice);
   }, [selectedVoice]);
+
+  useEffect(() => {
+    setCurrentlyLoading(null);
+  }, [currentVoiceChannel]);
 
   function showGuilds() {
     if (!currentGuilds?.length) {
@@ -54,14 +74,9 @@ export default function BotContainer({
       );
     }
     return currentGuilds.map((guild) => (
-      <button
-        className="button-26 button-width-90"
-        style={{ alignSelf: 'center', borderColor: 'gold' }}
-        key={guild.id}
-        onClick={() => setSelectedGuild(guild.id)}
-      >
+      <LinkButton onClick={() => setSelectedGuild(guild.id)}>
         {guild.name}
-      </button>
+      </LinkButton>
     ));
   }
 
@@ -71,84 +86,71 @@ export default function BotContainer({
     setCurrentGuilds(guilds);
   }
 
+  function joinVoice(id: string) {
+    return () => {
+      setCurrentlyLoading(id);
+      setSelectedVoice(id);
+    };
+  }
+
   function showVoiceChannels() {
     if (!selectedGuild) {
       return;
     }
-    const guild = currentGuilds.find((guild) => guild.id === selectedGuild);
 
+    const guild = currentGuilds.find((guild) => guild.id === selectedGuild);
     const components: JSX.Element[] = [
-      <button
-        className="button-26 button-width-90"
-        style={{
-          alignSelf: 'center',
-          backgroundColor: '#3e485a',
-        }}
-        onClick={() => setSelectedGuild(null)}
-        key={guild?.id}
-      >
-        {getTranslation('goBack')}
-      </button>,
+      <LinkButton onClick={() => setSelectedGuild(null)}>
+        {getTranslation('goBack')} ↰
+      </LinkButton>,
     ];
 
     for (const [_id, channel] of guild?.channels) {
       components.push(
-        <button
-          className="button-26 button-width-90"
-          key={channel.id}
+        <LinkButton
+          additionalStyle={
+            channel.id === currentVoiceChannel.id
+              ? { backgroundColor: '#2196f3' }
+              : undefined
+          }
           onClick={joinVoice(channel.id)}
-          style={{
-            width: '90%',
-            alignSelf: 'center',
-            backgroundColor:
-              currentVoiceChannel.id === channel.id ? '#6495ED' : undefined,
-          }}
         >
           {channel.name}
-        </button>
+          {currentlyLoading === channel.id && (
+            <img className="loading-small" src={LoadingIcon} />
+          )}
+        </LinkButton>
       );
     }
 
     return components;
   }
+  const BotInfoCont = () => {
+    if (!botInfo.isSet) {
+      return <></>;
+    }
 
-  function joinVoice(id: string) {
-    return () => {
-      setSelectedVoice(id);
-    };
-  }
-
-  return (
-    <div className="width33p file-container">
-      <div className="top-bar-container" style={{ alignItems: 'center' }}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-          }}
-        >
-          <div
-            style={{
-              width: '0.8em',
-              height: '0.8em',
-              backgroundColor: isBotStarted ? 'green' : 'red',
-              margin: '0.25em',
-              borderRadius: '50px',
-            }}
-          ></div>
-          <span style={{ color: 'white', marginInline: '5px' }}>Status:</span>
-          <span style={{ color: isBotStarted ? 'green' : 'gray' }}>
-            {isBotStarted ? ' Running ' : ' Not Running '}
-          </span>
+    return (
+      <div className="bot-status-container">
+        <div className="bot-avi-container">
+          <img
+            src={botInfo.avatarUrl ?? BotLogo}
+            style={isBotStarted ? { borderColor: '#50c878' } : {}}
+          />
         </div>
-        <button className="button-26" role="button" onClick={refreshGuilds}>
-          {getTranslation('refreshGuilds')}
-        </button>
+        <div className="bot-info-container">
+          <p>{botInfo.name}</p>
+        </div>
       </div>
-      <div className="file-holder">
-        {!selectedGuild ? showGuilds() : showVoiceChannels()}
-      </div>
-    </div>
+    );
+  };
+  return (
+    <>
+      <LinkButton>CHANGE TOKEN</LinkButton>
+      <BotInfoCont />
+
+      {isBotStarted && <h2 className="menu-title">Select your channels</h2>}
+      {isBotStarted && !selectedGuild ? showGuilds() : showVoiceChannels()}
+    </>
   );
 }

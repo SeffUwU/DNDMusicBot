@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { app, contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
 export type Channels = string;
 
@@ -30,4 +30,7 @@ contextBridge.exposeInMainWorld('electron', {
   startWithToken: (token: string, saveToken: boolean) =>
     ipcRenderer.invoke('startWithToken', token, saveToken),
   startWithSavedToken: () => ipcRenderer.invoke('startSaved'),
+  quit: () => ipcRenderer.invoke('userEvent:exit-app'),
+  fetchLocalBotInfo: () => ipcRenderer.invoke('fetchLocalBotInfo'),
+  openMusicFolderDialog: () => ipcRenderer.invoke('openMusicFolderDialog'),
 });

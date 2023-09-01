@@ -14,6 +14,7 @@ H010 is our DM and he gave me this idea.. thus why it is called H010's DnDMusicB
 
 - Python installed on your PC
 - windows-build-tools
+- node v16
 
 ## Start it dev:
 
@@ -76,6 +77,9 @@ In order to use this program you need your own bot. For this you have to create 
 # Releases:
 
 ### I only started to document these on release 0.2.1.. So.. dont expect much..
+
+### 0.2.3
+- Major redesign (again lol)
 
 ### 0.2.2:
 

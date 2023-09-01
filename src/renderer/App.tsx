@@ -1,24 +1,19 @@
-import {
-  MemoryRouter as Router,
-  Route,
-  Routes,
-  useNavigate,
-  useLocation,
-} from 'react-router-dom';
+import { ChangeEvent, useMemo, useState } from 'react';
+import { MemoryRouter as Router } from 'react-router-dom';
 import './App.css';
 import MainApp from './components/MainApp';
-import { ChangeEvent, useMemo, useState } from 'react';
-import { PlayerSettingsType, allowedLocale } from './types/types';
-import { getLanguageLocaleFn } from './helpers/helpers';
-import { useElectronHandler } from './customHooks';
 import { YTDLComponent } from './components/YTDL';
 import { TopBar } from './components/topBar/TopBar';
+import { useElectronHandler, useElectronState } from './customHooks';
+import { getLanguageLocaleFn } from './helpers/helpers';
+import { PlayerSettingsType, allowedLocale } from './types/types';
 
 export default function App() {
   const [language, setLanguage] = useState<allowedLocale>('en');
   const [playerSettings, setPlayerSettings] = useState<PlayerSettingsType>({
     repeat: false,
     autoplay: true,
+    shuffle: false,
   });
 
   useElectronHandler(
@@ -40,14 +35,17 @@ export default function App() {
       }));
     };
 
+  const botStarted = useElectronState('BOT_STARTED', false);
+
   const drillThruProps = {
     getTranslation,
     onSettingChange,
     playerSettings,
     setLanguage,
+    botStarted,
   };
 
-  // WOW! This is trash.. is this how do keep them from unmounting?
+  // WOW! This is trash.. is this how i keep them from unmounting?
   return (
     <Router>
       <TopBar {...drillThruProps} />

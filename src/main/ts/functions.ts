@@ -1,4 +1,5 @@
 import { BrowserWindow, dialog } from 'electron';
+import { DiscordClientInteraction } from '../discord/discordClientInteractionClass';
 
 export const musicDialog = async (mainWindow: BrowserWindow) => {
   const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
@@ -7,5 +8,6 @@ export const musicDialog = async (mainWindow: BrowserWindow) => {
 
   if (canceled) return;
 
-  mainWindow.webContents.send('DIR_CHANGE', { filePaths });
+  DiscordClientInteraction.emitRender('DIR_CHANGE', { filePaths });
+  DiscordClientInteraction.emitRender('FOLDER_CHANGED', null);
 };

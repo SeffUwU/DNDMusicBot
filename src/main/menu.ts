@@ -10,6 +10,7 @@ import { homedir } from 'os';
 import botInit from './discord/botInit';
 import { musicDialog } from './ts/functions';
 import { DiscordClientInteraction } from './discord/discordClientInteractionClass';
+import * as fs from 'fs';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
   selector?: string;
@@ -226,8 +227,10 @@ export default class MenuBuilder {
               }
 
               const token = String(readFileSync(folder + '/token.txt'));
+
               if (!token.length) {
                 this.mainWindow.webContents.send('MISSING_TOKEN_ERR');
+                DiscordClientInteraction.emitRender('TOKEN_ERROR', true);
                 return;
               }
 
@@ -249,15 +252,6 @@ export default class MenuBuilder {
           },
         ],
       },
-      // {
-      //   label: '&Options',
-      //   submenu: [
-      //     {
-      //       label: '&Set Your token',
-      //       accelerator: 'Ctrl+S',
-      //     },
-      //   ],
-      // },
     ];
 
     return templateDefault;

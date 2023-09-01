@@ -18,6 +18,7 @@ export const locale = {
     saveTokenQ: 'Save token?',
     tooLongWarning:
       'It seems that it takes too long to authenticate with your token. This may indicate that the key is invalid or you just have a slow internet ;)',
+    shuffle: 'SHUFFLE',
   },
   ru: {
     botStartMsg: 'Сначала запусти бота! UwU',
@@ -38,5 +39,6 @@ export const locale = {
     saveTokenQ: 'Сохранить токен?',
     tooLongWarning:
       'Похоже что аутентификация идет слишком долго.. Это может означать что у вас не правильный токен или медленный интернет ;)',
+    shuffle: 'ПЕРЕМЕШАТЬ',
   },
 };

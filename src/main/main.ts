@@ -16,6 +16,7 @@ import botInit from './discord/botInit';
 import { DiscordClientInteraction } from './discord/discordClientInteractionClass';
 import FileManagerService from './fileManager.service';
 import MenuBuilder from './menu';
+import { musicDialog } from './ts/functions';
 import { resolveHtmlPath } from './util';
 
 let mainWindow: BrowserWindow | null = null;
@@ -32,9 +33,6 @@ ipcMain.handle('startWithToken', async (event, token, saveToken) => {
   if (saveToken) {
     var home = homedir();
     var folder = home + '/Documents/h010MusicBot';
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder, { recursive: true });
-    }
 
     fs.writeFileSync(folder + '/token.txt', token, {});
   }
@@ -59,6 +57,7 @@ ipcMain.handle('startSaved', async () => {
 
   if (!token.length) {
     (mainWindow as BrowserWindow).webContents.send('MISSING_TOKEN_ERR');
+    DiscordClientInteraction.emitRender('TOKEN_ERROR', true);
     return;
   }
 
@@ -99,6 +98,30 @@ ipcMain.handle('togglePause', async (event, ...args) => {
   DiscordClientInteraction.togglePause();
 
   return true;
+});
+
+ipcMain.handle('userEvent:exit-app', async (event, ...args) => {
+  app.quit();
+});
+
+ipcMain.handle('fetchLocalBotInfo', () => {
+  const home = homedir();
+  const folder = home + '/Documents/h010MusicBot';
+  const botInfoJSON = fs.readFileSync(folder + '/bot-info.json');
+
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+  console.log(String(botInfoJSON), !!botInfoJSON);
+  botInfoJSON &&
+    DiscordClientInteraction.emitRender(
+      'BOT_INFO',
+      JSON.parse(String(botInfoJSON))
+    );
+});
+
+ipcMain.handle('openMusicFolderDialog', () => {
+  return musicDialog(mainWindow!);
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -151,6 +174,7 @@ const createWindow = async () => {
         : path.join(__dirname, '../../.erb/dll/preload.js'),
       nodeIntegration: true,
     },
+    titleBarStyle: 'hidden',
   });
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
@@ -199,6 +223,7 @@ app
   .whenReady()
   .then(() => {
     createWindow();
+
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.
