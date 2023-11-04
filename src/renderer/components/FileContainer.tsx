@@ -362,6 +362,7 @@ export default function FileContainer({
           _hover={{
             bg: 'white',
             color: 'black',
+            cursor: 'pointer',
           }}
         />
       </Flex>
