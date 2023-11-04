@@ -3,6 +3,7 @@ import {
   ButtonProps,
   TextProps,
   StyleConfig,
+  FormLabelProps,
 } from '@chakra-ui/react';
 
 export const theme = extendTheme({
@@ -49,6 +50,13 @@ export const theme = extendTheme({
         color: 'whiteAlpha.800',
         fontSize: '2xl',
       } as TextProps,
+    },
+    FormLabel: {
+      baseStyle: {
+        color: 'whiteAlpha.800',
+        fontSize: '2xl',
+        fontWeight: 'normal',
+      } as FormLabelProps,
     },
   },
 } as Record<string, StyleConfig>);

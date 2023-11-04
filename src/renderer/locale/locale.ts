@@ -14,7 +14,7 @@ export const locale = {
     noTokenAlert:
       'No saved token is found. Please input your bot token in the input and press "START"',
     loading: 'Loading...',
-    startBotSaved: 'Start (Saved)',
+    startBotSaved: 'Start (Saved token)',
     saveTokenQ: 'Save token?',
     tooLongWarning:
       'It seems that it takes too long to authenticate with your token. This may indicate that the key is invalid or you just have a slow internet ;)',
@@ -43,7 +43,7 @@ export const locale = {
     noTokenAlert:
       'Не найдено сохраненных токенов. Пожалуйста введи свой токен и нажмите "Запустить"',
     loading: 'Загружаем...',
-    startBotSaved: 'Запустить (Сохраненный)',
+    startBotSaved: 'Запустить (Сохр. токен)',
     saveTokenQ: 'Сохранить токен?',
     tooLongWarning:
       'Похоже что аутентификация идет слишком долго.. Это может означать что у вас не правильный токен или медленный интернет ;)',
