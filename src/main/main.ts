@@ -8,7 +8,7 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron';
 import * as fs from 'fs';
 import { homedir } from 'os';
 import path from 'path';
@@ -16,7 +16,9 @@ import botInit from './discord/botInit';
 import { DiscordClientInteraction } from './discord/discordClientInteractionClass';
 import FileManagerService from './fileManager.service';
 import MenuBuilder from './menu';
+import { musicDialog } from './ts/functions';
 import { resolveHtmlPath } from './util';
+import { YTMetaType } from 'sharedTypes/sharedTypes';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -32,9 +34,6 @@ ipcMain.handle('startWithToken', async (event, token, saveToken) => {
   if (saveToken) {
     var home = homedir();
     var folder = home + '/Documents/h010MusicBot';
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder, { recursive: true });
-    }
 
     fs.writeFileSync(folder + '/token.txt', token, {});
   }
@@ -59,6 +58,7 @@ ipcMain.handle('startSaved', async () => {
 
   if (!token.length) {
     (mainWindow as BrowserWindow).webContents.send('MISSING_TOKEN_ERR');
+    DiscordClientInteraction.emitRender('TOKEN_ERROR', true);
     return;
   }
 
@@ -101,6 +101,117 @@ ipcMain.handle('togglePause', async (event, ...args) => {
   return true;
 });
 
+ipcMain.handle('userEvent:exit-app', async (event, ...args) => {
+  app.quit();
+});
+
+ipcMain.handle('fetchLocalBotInfo', () => {
+  const home = homedir();
+  const folder = home + '/Documents/h010MusicBot';
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+
+  const botInfoJSON =
+    fs.existsSync(folder + '/bot-info.json') &&
+    fs.readFileSync(folder + '/bot-info.json');
+
+  const savedLinksJson =
+    fs.existsSync(folder + '/saved-links.json') &&
+    fs.readFileSync(folder + '/saved-links.json');
+
+  botInfoJSON &&
+    DiscordClientInteraction.emitRender(
+      'BOT_INFO',
+      JSON.parse(String(botInfoJSON))
+    );
+
+  savedLinksJson &&
+    DiscordClientInteraction.emitRender(
+      'SAVED_LINK',
+      JSON.parse(String(savedLinksJson))
+    );
+});
+
+ipcMain.handle('openMusicFolderDialog', () => {
+  return musicDialog(mainWindow!);
+});
+
+ipcMain.handle(
+  'userEvent:playYTLink',
+  (event, link: string, newDuration?: number) => {
+    DiscordClientInteraction.playYtDLAudio(link, newDuration);
+  }
+);
+
+ipcMain.handle('userEvent:saveLink', (event, info: YTMetaType) => {
+  const home = homedir();
+
+  const folder = home + '/Documents/h010MusicBot';
+
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+
+  const savedLinksJson =
+    fs.existsSync(folder + '/saved-links.json') &&
+    fs.readFileSync(folder + '/saved-links.json');
+
+  if (!savedLinksJson) {
+    fs.writeFileSync(folder + '/saved-links.json', JSON.stringify([info]));
+    DiscordClientInteraction.emitRender('SAVED_LINK', [info]);
+
+    return;
+  }
+
+  const savedLinks: YTMetaType[] = JSON.parse(String(savedLinksJson));
+
+  savedLinks.push(info);
+
+  fs.writeFileSync(folder + '/saved-links.json', JSON.stringify(savedLinks));
+
+  DiscordClientInteraction.emitRender('SAVED_LINK', savedLinks);
+});
+
+ipcMain.handle('userEvent:removeLink', (event, toRemoveLink: string) => {
+  const home = homedir();
+
+  const folder = home + '/Documents/h010MusicBot';
+
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+
+  const savedLinksJson =
+    fs.existsSync(folder + '/saved-links.json') &&
+    fs.readFileSync(folder + '/saved-links.json');
+
+  if (!savedLinksJson) {
+    return;
+  }
+  const savedLinks: YTMetaType[] = JSON.parse(String(savedLinksJson));
+
+  const withRemovedLink = savedLinks.filter(({ link }) => {
+    return link !== toRemoveLink;
+  });
+
+  fs.writeFileSync(
+    folder + '/saved-links.json',
+    JSON.stringify(withRemovedLink)
+  );
+
+  DiscordClientInteraction.emitRender('SAVED_LINK', withRemovedLink);
+});
+ipcMain.handle('userEvent:copyInviteURL', () => {
+  const clientId = DiscordClientInteraction.getClientId();
+  clipboard.writeText(
+    `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=274881054720&scope=bot`
+  );
+  DiscordClientInteraction.emitRenderInfo(
+    'Link copied',
+    'Link copied to clipboard'
+  );
+});
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
@@ -151,6 +262,7 @@ const createWindow = async () => {
         : path.join(__dirname, '../../.erb/dll/preload.js'),
       nodeIntegration: true,
     },
+    titleBarStyle: 'hidden',
   });
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
@@ -199,6 +311,7 @@ app
   .whenReady()
   .then(() => {
     createWindow();
+
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.

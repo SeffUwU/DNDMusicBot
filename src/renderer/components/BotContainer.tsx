@@ -1,6 +1,22 @@
+import {
+  Box,
+  Button,
+  Flex,
+  Icon,
+  IconButton,
+  Image,
+  Link,
+  Text,
+  Tooltip,
+} from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
+import { BiCopy } from 'react-icons/bi';
+import { IoIosArrowBack } from 'react-icons/io';
+import { RxExternalLink } from 'react-icons/rx';
 import { useElectronState } from 'renderer/customHooks';
-import { getTranslationFn, shortGuild } from 'renderer/types/types';
+import { TBotInfo, getTranslationFn, shortGuild } from 'renderer/types/types';
+import BotLogo from '../assets/bot_avi.jpg';
+import LoadingIcon from '../assets/loading.gif';
 
 export default function BotContainer({
   currentGuilds,
@@ -15,6 +31,7 @@ export default function BotContainer({
 }) {
   const [selectedGuild, setSelectedGuild] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [currentlyLoading, setCurrentlyLoading] = useState<string | null>(null);
 
   const currentVoiceChannel = useElectronState<shortGuild>('VOICE_CHANGED', {
     id: '',
@@ -22,9 +39,21 @@ export default function BotContainer({
     channels: null,
   });
 
+  const botInfo = useElectronState<TBotInfo>('BOT_INFO', {
+    avatarUrl: null,
+    id: null,
+    isBot: false,
+    name: null,
+    isSet: false,
+  });
+
   useEffect(() => {
-    !currentGuilds.length && refreshGuilds();
+    window.electron.fetchLocalBotInfo();
   }, []);
+
+  useEffect(() => {
+    isBotStarted && !currentGuilds.length && refreshGuilds();
+  }, [isBotStarted]);
 
   useEffect(() => {
     if (!selectedGuild || !selectedVoice) {
@@ -33,6 +62,10 @@ export default function BotContainer({
 
     window.electron.connectVoice(selectedGuild, selectedVoice);
   }, [selectedVoice]);
+
+  useEffect(() => {
+    setCurrentlyLoading(null);
+  }, [currentVoiceChannel]);
 
   function showGuilds() {
     if (!currentGuilds?.length) {
@@ -53,16 +86,19 @@ export default function BotContainer({
         </div>
       );
     }
-    return currentGuilds.map((guild) => (
-      <button
-        className="button-26 button-width-90"
-        style={{ alignSelf: 'center', borderColor: 'gold' }}
-        key={guild.id}
-        onClick={() => setSelectedGuild(guild.id)}
-      >
-        {guild.name}
-      </button>
-    ));
+
+    return currentGuilds.map((guild) => {
+      const hasActiveVC = guild.channels?.has(currentVoiceChannel.id);
+      return (
+        <Button
+          bg={hasActiveVC ? 'green.400' : undefined}
+          variant={'primary'}
+          onClick={() => setSelectedGuild(guild.id)}
+        >
+          {guild.name}
+        </Button>
+      );
+    });
   }
 
   async function refreshGuilds() {
@@ -71,84 +107,156 @@ export default function BotContainer({
     setCurrentGuilds(guilds);
   }
 
+  function joinVoice(id: string) {
+    return () => {
+      setCurrentlyLoading(id);
+      setSelectedVoice(id);
+    };
+  }
+
   function showVoiceChannels() {
     if (!selectedGuild) {
       return;
     }
-    const guild = currentGuilds.find((guild) => guild.id === selectedGuild);
 
+    const guild = currentGuilds.find((guild) => guild.id === selectedGuild);
     const components: JSX.Element[] = [
-      <button
-        className="button-26 button-width-90"
-        style={{
-          alignSelf: 'center',
-          backgroundColor: '#3e485a',
-        }}
+      <Button
+        variant="primary"
+        display="flex"
+        justifyContent="flex-start"
+        bg={'gray.600'}
         onClick={() => setSelectedGuild(null)}
-        key={guild?.id}
       >
-        {getTranslation('goBack')}
-      </button>,
+        <Icon as={IoIosArrowBack} /> {getTranslation('goBack')}
+      </Button>,
     ];
 
-    for (const [_id, channel] of guild?.channels) {
+    for (const [_id, channel] of guild?.channels!) {
       components.push(
-        <button
-          className="button-26 button-width-90"
-          key={channel.id}
+        <Button
+          variant={'primary'}
+          bg={channel.id === currentVoiceChannel.id ? 'green.400' : undefined}
           onClick={joinVoice(channel.id)}
-          style={{
-            width: '90%',
-            alignSelf: 'center',
-            backgroundColor:
-              currentVoiceChannel.id === channel.id ? '#6495ED' : undefined,
-          }}
+          display="flex"
+          justifyContent={'space-between'}
+          key={_id}
         >
           {channel.name}
-        </button>
+          {currentlyLoading == channel.id && <Image src={LoadingIcon} h={6} />}
+        </Button>
       );
     }
 
     return components;
   }
+  const BotInfoCont = () => {
+    if (!botInfo.isSet) {
+      return <></>;
+    }
 
-  function joinVoice(id: string) {
-    return () => {
-      setSelectedVoice(id);
-    };
-  }
-
-  return (
-    <div className="width33p file-container">
-      <div className="top-bar-container" style={{ alignItems: 'center' }}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-          }}
-        >
-          <div
-            style={{
-              width: '0.8em',
-              height: '0.8em',
-              backgroundColor: isBotStarted ? 'green' : 'red',
-              margin: '0.25em',
-              borderRadius: '50px',
+    return (
+      <Flex
+        bg="gray.800"
+        p={4}
+        borderStyle={'solid'}
+        borderWidth={1}
+        borderColor={isBotStarted ? '#50c878' : 'red.5s00'}
+        borderRadius={'md'}
+        flexDir={'column'}
+        mt={4}
+      >
+        <Flex gap={4}>
+          <Box position="relative">
+            <Tooltip
+              label="Copy invite URL"
+              position={'absolute'}
+              top={-10}
+              right={'-60px'}
+            >
+              <span>
+                <IconButton
+                  top={0}
+                  right={-1}
+                  position={'absolute'}
+                  isRound
+                  size={'xs'}
+                  as={BiCopy}
+                  p={1}
+                  aria-label="Copy invite URL"
+                  zIndex={4}
+                  _hover={{
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => window.electron.copyInviteURL()}
+                />
+              </span>
+            </Tooltip>
+            <Image
+              h={16}
+              borderRadius={'full'}
+              src={botInfo.avatarUrl ?? BotLogo}
+              borderStyle={'solid'}
+              borderWidth={1}
+              borderColor={isBotStarted ? '#50c878' : 'red.5s00'}
+            />
+          </Box>
+          <Box>
+            <Text
+              w={64}
+              fontSize={'xl'}
+              textOverflow="ellipsis"
+              overflow={'hidden'}
+              whiteSpace={'nowrap'}
+            >
+              {botInfo.name}
+            </Text>
+            <Link
+              color="white"
+              display={'flex'}
+              flexDir={'row'}
+              alignItems={'center'}
+              whiteSpace={'pre-wrap'}
+              onClick={() => {
+                window.electron.openLink(
+                  'https://github.com/SeffUwU/DNDMusicBot#set-up-your-own-bot'
+                );
+              }}
+            >
+              How to setup your bot? <RxExternalLink />
+            </Link>
+          </Box>
+        </Flex>
+        {!isBotStarted && (
+          <Button
+            mt={4}
+            variant={'primary'}
+            onClick={() => {
+              window.electron.startWithSavedToken();
             }}
-          ></div>
-          <span style={{ color: 'white', marginInline: '5px' }}>Status:</span>
-          <span style={{ color: isBotStarted ? 'green' : 'gray' }}>
-            {isBotStarted ? ' Running ' : ' Not Running '}
-          </span>
-        </div>
-        <button className="button-26" role="button" onClick={refreshGuilds}>
-          {getTranslation('refreshGuilds')}
-        </button>
-      </div>
-      <div className="file-holder">
-        {!selectedGuild ? showGuilds() : showVoiceChannels()}
-      </div>
-    </div>
+          >
+            START WITH SAVED TOKEN
+          </Button>
+        )}
+      </Flex>
+    );
+  };
+  return (
+    <Flex gap={4} flexDir="column">
+      {/* <LinkButton>CHANGE TOKEN</LinkButton> */}
+      <BotInfoCont />
+
+      {isBotStarted && (
+        <Flex justify="space-between">
+          <Text className="menu-title">
+            {getTranslation('selectBotChannel')}
+          </Text>
+          <Button variant={'functional'} onClick={refreshGuilds}>
+            REFRESH
+          </Button>
+        </Flex>
+      )}
+      {isBotStarted && !selectedGuild ? showGuilds() : showVoiceChannels()}
+    </Flex>
   );
 }

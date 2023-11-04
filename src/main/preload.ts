@@ -1,4 +1,6 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent, shell } from 'electron';
+import { YTMetaType } from 'sharedTypes/sharedTypes';
+const { clipboard } = require('electron');
 
 export type Channels = string;
 
@@ -30,4 +32,17 @@ contextBridge.exposeInMainWorld('electron', {
   startWithToken: (token: string, saveToken: boolean) =>
     ipcRenderer.invoke('startWithToken', token, saveToken),
   startWithSavedToken: () => ipcRenderer.invoke('startSaved'),
+  quit: () => ipcRenderer.invoke('userEvent:exit-app'),
+  fetchLocalBotInfo: () => ipcRenderer.invoke('fetchLocalBotInfo'),
+  openMusicFolderDialog: () => ipcRenderer.invoke('openMusicFolderDialog'),
+  playYTLink: (link: string, newDuration?: number) =>
+    ipcRenderer.invoke('userEvent:playYTLink', link, newDuration),
+  saveLink: (info: YTMetaType) =>
+    ipcRenderer.invoke('userEvent:saveLink', info),
+  removeLink: (link: string) =>
+    ipcRenderer.invoke('userEvent:removeLink', link),
+  copyInviteURL: () => ipcRenderer.invoke('userEvent:copyInviteURL'),
+  openLink: (link: string) => {
+    shell.openExternal(link);
+  },
 });

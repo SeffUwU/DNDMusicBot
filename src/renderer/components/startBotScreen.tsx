@@ -1,6 +1,15 @@
 import { getTranslationFn } from 'renderer/types/types';
 import './startBotScreen.css';
 import { useState } from 'react';
+import { useElectronState } from 'renderer/customHooks';
+import {
+  Button,
+  Checkbox,
+  Flex,
+  FormLabel,
+  Input,
+  Text,
+} from '@chakra-ui/react';
 
 const SHOW_WARNING_TIMEOUT_TIME = 15000; // 15 seconds
 
@@ -13,8 +22,9 @@ export default function StartBotScreen({
   const [saveToken, setSaveToken] = useState(true);
   const [isLoading, setLoading] = useState(false);
   const [isTooLong, setTooLong] = useState(false);
+  const isTokenError = useElectronState('TOKEN_ERROR', false);
 
-  if (isLoading) {
+  if (isLoading && !isTokenError) {
     !isTooLong &&
       setTimeout(() => {
         setTooLong(true);
@@ -27,83 +37,80 @@ export default function StartBotScreen({
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
+          alignSelf: 'center',
+          width: '100%',
           height: '50%',
         }}
       >
         <div className="lds-dual-ring" style={{ marginBottom: '40px' }}></div>
         <span>{getTranslation('loading')}</span>
         {isTooLong && (
-          <span
-            style={{
-              width: '400px',
-              textAlign: 'center',
-              marginTop: '40px',
-              fontSize: '18px',
-            }}
-          >
-            {getTranslation('tooLongWarning')}
-          </span>
+          <Flex flexDir={'column'} gap={16} align={'center'}>
+            <Text maxW={'4xl'}>{getTranslation('tooLongWarning')}</Text>{' '}
+            <Button
+              w={'md'}
+              onClick={() => {
+                setTooLong(false);
+                setLoading(false);
+              }}
+            >
+              {getTranslation('goBack')}
+            </Button>
+          </Flex>
         )}
       </div>
     );
   }
 
   return (
-    <div className="start-bot-container">
-      <h1 style={{ marginBottom: '60px' }}>{getTranslation('botStartMsg')}</h1>
-      <div>
-        <span>{getTranslation('useYourToken')}</span>
-        <div className="input-container">
-          <div className="form__group field">
-            <input
-              type="input"
-              className="form__field"
-              placeholder="Name"
-              name="name"
-              id="name"
-              onChange={(e) => setToken(e.target.value)}
-            />
-            <label htmlFor="name" className="form__label">
-              {getTranslation('tokenKeyword')}
-            </label>
-          </div>
-        </div>
-      </div>
-      <div style={{ marginTop: '25px' }}>
-        <input
+    <Flex flexDir={'column'} justify={'center'}>
+      <Text textAlign={'center'} mb={2} fontSize={'2xl'}>
+        {getTranslation('botStartMsg')}
+      </Text>
+      <Flex flexDir={'column'}>
+        <FormLabel w="100%">
+          {getTranslation('tokenKeyword')}
+          <Input
+            color="white"
+            placeholder="Set your token.."
+            onChange={(e) => setToken(e.target.value)}
+            value={token}
+          />
+        </FormLabel>
+      </Flex>
+      <FormLabel display={'flex'} alignItems={'center'}>
+        <Checkbox
           type="checkbox"
-          id="saveToken"
           checked={saveToken}
           onChange={(e) => setSaveToken(e.target.checked)}
+          mr={2}
         />
-        <label htmlFor="saveToken">{getTranslation('saveTokenQ')}</label>
-      </div>
-      <button
-        className="button-26"
-        style={{ marginTop: '25px', width: '300px' }}
-        onClick={() => {
-          window.electron.startWithToken(token, saveToken);
-          setLoading(true);
-        }}
-      >
-        {getTranslation('startBot')}
-      </button>
+        <Text>Save token?</Text>
+      </FormLabel>
+      <Flex mt={4} gap={4} justifyContent={'space-between'}>
+        <Button
+          variant={'functional'}
+          onClick={() => {
+            window.electron.startWithToken(token, saveToken);
+            setLoading(true);
+          }}
+        >
+          {getTranslation('startBot')}
+        </Button>
 
-      <button
-        className="button-26"
-        style={{
-          marginTop: '25px',
-          width: '300px',
-          backgroundColor: 'green',
-          borderColor: 'greenyellow',
-        }}
-        onClick={() => {
-          window.electron.startWithSavedToken();
-          setLoading(true);
-        }}
-      >
-        {getTranslation('startBotSaved')}
-      </button>
-    </div>
+        {!isTokenError && (
+          <Button
+            variant={'functional'}
+            bg="green.400"
+            onClick={() => {
+              window.electron.startWithSavedToken();
+              setLoading(true);
+            }}
+          >
+            {getTranslation('startBotSaved')}
+          </Button>
+        )}
+      </Flex>
+    </Flex>
   );
 }

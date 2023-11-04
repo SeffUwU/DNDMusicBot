@@ -1,4 +1,5 @@
 import {
+  NoSubscriberBehavior,
   VoiceConnection,
   VoiceConnectionStatus,
   createAudioPlayer,
@@ -11,7 +12,9 @@ import { Client, Collection, Guild, GuildBasedChannel } from 'discord.js';
 import { BrowserWindow, app } from 'electron';
 import fluentFfmpeg, { FfmpegCommand } from 'fluent-ffmpeg';
 import { normalize } from 'path';
-import { PassThrough } from 'stream';
+import { stream } from 'play-dl';
+import { PassThrough, Readable } from 'stream';
+import ytdl from 'ytdl-core';
 
 const FfmpegPath = require('ffmpeg-static');
 
@@ -24,12 +27,23 @@ fluentFfmpeg.setFfmpegPath(
 export class DiscordClientInteraction {
   private static client: Client;
   private static currentVoiceConnection: VoiceConnection;
-  private static audioPlayer = createAudioPlayer();
+  private static audioPlayer = createAudioPlayer({
+    behaviors: {
+      noSubscriber: NoSubscriberBehavior.Play,
+    },
+  });
   private static isPlaying: boolean = false;
   private static currentFfmpegCommand: FfmpegCommand | null;
   private static currentOpenStream: PassThrough | null;
   public static mainWindow: BrowserWindow;
-
+  public static currentOpenYTDLStream: Readable;
+  public static getClientId() {
+    if (!this.client?.user?.id) {
+      this.emitRenderError('Discord client is not set', true);
+      return;
+    }
+    return this.client.user.id;
+  }
   public static setClient(setClient: Client) {
     if (this.client) {
       throw new Error('Client is already set!');
@@ -74,18 +88,19 @@ export class DiscordClientInteraction {
   public static getGuildById(id: string): Guild | undefined {
     this.isClientSet();
 
-    return this.client.guilds.cache.find((guild) => guild.id === id);
+    return this.client.guilds.cache.get(id);
   }
 
   public static joinVoice(guildId: string, id: string) {
     this.isClientSet();
 
     if (this.currentVoiceConnection) {
+      this.currentVoiceConnection.removeAllListeners();
       this.currentVoiceConnection.disconnect();
       this.currentVoiceConnection.destroy();
     }
 
-    const guild = this.client.guilds.cache.get(guildId);
+    const guild = this.getGuildById(guildId);
 
     if (!guild) {
       throw new Error('This channel does not exist.');
@@ -118,6 +133,8 @@ export class DiscordClientInteraction {
         console.log(err);
         this.emitRenderError(new Error(`AudioPlayer error: ${err}`));
       });
+
+      this.currentVoiceConnection = connection;
     });
 
     connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -127,8 +144,11 @@ export class DiscordClientInteraction {
           entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
         ]);
       } catch (error) {
-        connection.removeAllListeners();
-        connection.destroy();
+        if (this.currentVoiceConnection) {
+          this.currentVoiceConnection.removeAllListeners();
+          this.currentVoiceConnection.disconnect();
+          this.currentVoiceConnection.destroy();
+        }
       }
     });
 
@@ -221,11 +241,56 @@ export class DiscordClientInteraction {
     return true;
   }
 
-  private static emitRender(event: string, data: any) {
+  public static emitRender(event: string, data: any) {
     this.mainWindow.webContents.send(event, data);
   }
 
-  public static emitRenderError(data: any) {
+  public static emitRenderError(data: any, useToast = false) {
+    if (useToast) {
+      this.emitRender('ERROR_TOAST', data);
+      return;
+    }
     this.emitRender('MAIN_PROCESS_ERROR', data);
+  }
+
+  public static emitRenderInfo(title: string, description: string) {
+    this.emitRender('INFO_TOAST', { description, title });
+  }
+
+  public static async playYtDLAudio(url: string, newDuration: number = 0) {
+    if (this.currentFfmpegCommand) {
+      this.currentFfmpegCommand?.kill('');
+      this.currentFfmpegCommand = null;
+    }
+
+    if (this.currentOpenStream) {
+      this.audioPlayer.stop(true);
+      this.currentOpenStream.end();
+    }
+
+    if (this.currentOpenYTDLStream) {
+      this.currentOpenYTDLStream.destroy();
+    }
+
+    this.currentOpenStream = new PassThrough({ autoDestroy: true });
+
+    const ytstream = await stream(url, {
+      discordPlayerCompatibility: true,
+      seek: newDuration,
+    });
+
+    const ytInfo = await ytdl.getBasicInfo(url);
+
+    const newResource = createAudioResource(ytstream.stream, {
+      inputType: ytstream.type,
+    });
+
+    this.audioPlayer.play(newResource);
+
+    this.emitRender('YT_META', {
+      lengthSeconds: ytInfo.videoDetails.lengthSeconds,
+      link: url,
+      title: ytInfo.videoDetails.title,
+    });
   }
 }
