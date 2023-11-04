@@ -1,3 +1,4 @@
+import { ChakraBaseProvider } from '@chakra-ui/react';
 import { ChangeEvent, useMemo, useState } from 'react';
 import { MemoryRouter as Router } from 'react-router-dom';
 import './App.css';
@@ -6,6 +7,7 @@ import { YTDLComponent } from './components/YTDL';
 import { TopBar } from './components/topBar/TopBar';
 import { useElectronHandler, useElectronState } from './customHooks';
 import { getLanguageLocaleFn } from './helpers/helpers';
+import { theme } from './theme/theme';
 import { PlayerSettingsType, allowedLocale } from './types/types';
 
 export default function App() {
@@ -47,10 +49,12 @@ export default function App() {
 
   // WOW! This is trash.. is this how i keep them from unmounting?
   return (
-    <Router>
-      <TopBar {...drillThruProps} />
-      <MainApp path="/" {...drillThruProps} />
-      <YTDLComponent {...drillThruProps} />
-    </Router>
+    <ChakraBaseProvider theme={theme}>
+      <Router>
+        <TopBar {...drillThruProps} />
+        <MainApp path="/" {...drillThruProps} />
+        <YTDLComponent {...drillThruProps} />
+      </Router>
+    </ChakraBaseProvider>
   );
 }

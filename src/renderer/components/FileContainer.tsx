@@ -1,10 +1,11 @@
+import { Flex, IconButton, Switch, Text } from '@chakra-ui/react';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { BiPause, BiPlay } from 'react-icons/bi';
 import { useElectronHandler, useElectronState } from 'renderer/customHooks';
 import { padNum } from 'renderer/helpers/helpers';
 import { PlayerSettingsType, getTranslationFn } from 'renderer/types/types';
 import { FSType } from 'sharedTypes/sharedTypes';
 import LinkButton from './buttons/LinkButton.component';
-
 type EventArgs = {
   filePaths?: string[];
 };
@@ -206,15 +207,20 @@ export default function FileContainer({
         : undefined;
 
       components[index] = (
-        <button
-          className={`file-element ${element.directory && 'directory'}`}
-          style={{
-            background: destinedColor,
-            color: element.directory ? '#354757' : 'white',
-            display: 'flex',
-            flexDirection: 'row',
-          }}
+        <Flex
+          bg={destinedColor}
+          h="36"
+          w="48"
           key={element.name}
+          borderStyle={'solid'}
+          borderColor={'gray.600'}
+          borderWidth={1}
+          borderRadius={'md'}
+          overflow={'hidden'}
+          _hover={{
+            cursor: 'pointer',
+            bg: '#ccc',
+          }}
           onClick={
             element.directory
               ? () =>
@@ -222,8 +228,14 @@ export default function FileContainer({
               : playAudio(path)
           }
         >
-          <span>{element.name}</span>
-        </button>
+          <Text
+            p={2}
+            fontSize={'xl'}
+            color={element.directory ? 'black' : undefined}
+          >
+            {element.name}
+          </Text>
+        </Flex>
       );
     };
 
@@ -289,8 +301,8 @@ export default function FileContainer({
   }, [playback]);
 
   return (
-    <div className="file-container">
-      <div className="top-bar-container">
+    <Flex flexDir="column" w="8xl" ml={'auto'} mr="auto">
+      <Flex px={4} pb={1}>
         <LinkButton
           additionalStyle={{ backgroundColor: '#1652f0' }}
           onClick={() => getFileList(currentPath[0])}
@@ -309,75 +321,61 @@ export default function FileContainer({
               onMouseUp={sliderOnMouseUp}
             />
           </div>
-          <div className="slider-controls">
-            <div>
-              <span style={{ color: 'white' }} className="unselectable">
+          <Flex justify="space-between" w="full">
+            <Flex align={'center'} gap={2}>
+              <Text fontSize={'xl'} userSelect={'none'}>
                 {getTranslation('repeatSong')}
-              </span>
-              <label className="switch unselectable">
-                <input
-                  type="checkbox"
-                  checked={playerSettings.repeat}
-                  onChange={onSettingChange('repeat')}
-                />
-                <span className="slider round"></span>
-              </label>
-
-              <span
-                style={{ marginLeft: '10px', color: 'white' }}
-                className="unselectable"
-              >
+              </Text>
+              <Switch
+                checked={playerSettings.repeat}
+                onChange={onSettingChange('repeat')}
+              />
+              <Text fontSize={'xl'} userSelect={'none'}>
                 {getTranslation('autoPlay')}
-              </span>
-              <label className="switch unselectable">
-                <input
-                  type="checkbox"
-                  checked={playerSettings.autoplay}
-                  onChange={onSettingChange('autoplay')}
-                />
-                <span className="slider round"></span>
-              </label>
+              </Text>
+              <Switch
+                checked={playerSettings.autoplay}
+                onChange={onSettingChange('autoplay')}
+              />
 
-              <span
-                style={{ marginLeft: '10px', color: 'white' }}
-                className="unselectable"
-              >
+              {/* <Text fontSize={'xl'} userSelect={'none'}>
                 {getTranslation('shuffle')}
-              </span>
-              <label className="switch unselectable">
-                <input
-                  type="checkbox"
-                  checked={playerSettings.shuffle}
-                  onChange={onSettingChange('shuffle')}
-                />
-                <span className="slider round"></span>
-              </label>
-            </div>
+              </Text>
+              <Switch
+                checked={playerSettings.shuffle}
+                onChange={onSettingChange('shuffle')}
+              /> */}
+            </Flex>
 
-            <div className="time-info-container">
-              <span style={{ color: 'white' }}>{playbackValue}</span>
-            </div>
-          </div>
+            <Flex justify="center">
+              <Text>{playbackValue}</Text>
+            </Flex>
+          </Flex>
         </div>
-        <LinkButton
-          additionalStyle={{ backgroundColor: '#1652f0' }}
+        <IconButton
+          aria-label="PAUSE/PLAY"
+          as={playback.isPaused ? BiPlay : BiPause}
+          color="white"
+          bg="Highlight"
+          size={'md'}
           onClick={handlePause}
-        >
-          {pausedState ? '⏸' : '⏵'}
-        </LinkButton>
-      </div>
-      <div className="file-holder">
-        {showSelectableElements.length ? (
-          showSelectableElements
-        ) : (
-          <LinkButton
-            onClick={() => window.electron.openMusicFolderDialog()}
-            additionalStyle={{ margin: '10px' }}
-          >
-            CHANGE FOLDER
-          </LinkButton>
-        )}
-      </div>
-    </div>
+          _hover={{
+            bg: 'white',
+            color: 'black',
+          }}
+        />
+      </Flex>
+      <Flex w="full" alignSelf={'center'} px={4} mt={2} justify={'center'}>
+        <Flex flexWrap={'wrap'} gap={2}>
+          {showSelectableElements.length ? (
+            showSelectableElements
+          ) : (
+            <LinkButton onClick={() => window.electron.openMusicFolderDialog()}>
+              CHANGE FOLDER
+            </LinkButton>
+          )}
+        </Flex>
+      </Flex>
+    </Flex>
   );
 }

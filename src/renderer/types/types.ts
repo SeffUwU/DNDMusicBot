@@ -1,10 +1,11 @@
+import { VoiceChannel } from 'discord.js';
 import { ChangeEvent } from 'react';
 import { locale } from 'renderer/locale/locale';
 
 export type shortGuild = {
   id: string;
   name: string;
-  channels: any;
+  channels: Map<string, VoiceChannel> | null;
 };
 
 export type PlayerSettingsType = {

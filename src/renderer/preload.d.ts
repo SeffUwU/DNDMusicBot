@@ -1,6 +1,6 @@
 import { Channels } from 'main/preload';
 import { shortGuild } from './types/types';
-import { FSType } from 'sharedTypes/sharedTypes';
+import { FSType, YTMetaType } from 'sharedTypes/sharedTypes';
 
 declare global {
   interface Window {
@@ -21,6 +21,11 @@ declare global {
       quit: () => void;
       fetchLocalBotInfo: () => void;
       openMusicFolderDialog: () => void;
+      playYTLink: (link: string, newDuration?: number) => void;
+      saveLink: (info: YTMetaType) => void;
+      removeLink: (link: string) => void;
+      copyInviteURL: () => void;
+      openLink: (link: string) => void;
     };
   }
 }

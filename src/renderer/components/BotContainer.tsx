@@ -1,9 +1,22 @@
+import {
+  Box,
+  Button,
+  Flex,
+  Icon,
+  IconButton,
+  Image,
+  Link,
+  Text,
+  Tooltip,
+} from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
+import { BiCopy } from 'react-icons/bi';
+import { IoIosArrowBack } from 'react-icons/io';
+import { RxExternalLink } from 'react-icons/rx';
 import { useElectronState } from 'renderer/customHooks';
 import { TBotInfo, getTranslationFn, shortGuild } from 'renderer/types/types';
 import BotLogo from '../assets/bot_avi.jpg';
 import LoadingIcon from '../assets/loading.gif';
-import LinkButton from './buttons/LinkButton.component';
 
 export default function BotContainer({
   currentGuilds,
@@ -73,11 +86,19 @@ export default function BotContainer({
         </div>
       );
     }
-    return currentGuilds.map((guild) => (
-      <LinkButton onClick={() => setSelectedGuild(guild.id)}>
-        {guild.name}
-      </LinkButton>
-    ));
+
+    return currentGuilds.map((guild) => {
+      const hasActiveVC = guild.channels?.has(currentVoiceChannel.id);
+      return (
+        <Button
+          bg={hasActiveVC ? 'green.400' : undefined}
+          variant={'primary'}
+          onClick={() => setSelectedGuild(guild.id)}
+        >
+          {guild.name}
+        </Button>
+      );
+    });
   }
 
   async function refreshGuilds() {
@@ -100,26 +121,30 @@ export default function BotContainer({
 
     const guild = currentGuilds.find((guild) => guild.id === selectedGuild);
     const components: JSX.Element[] = [
-      <LinkButton onClick={() => setSelectedGuild(null)}>
-        {getTranslation('goBack')} ↰
-      </LinkButton>,
+      <Button
+        variant="primary"
+        display="flex"
+        justifyContent="flex-start"
+        bg={'gray.600'}
+        onClick={() => setSelectedGuild(null)}
+      >
+        <Icon as={IoIosArrowBack} /> {getTranslation('goBack')}
+      </Button>,
     ];
 
-    for (const [_id, channel] of guild?.channels) {
+    for (const [_id, channel] of guild?.channels!) {
       components.push(
-        <LinkButton
-          additionalStyle={
-            channel.id === currentVoiceChannel.id
-              ? { backgroundColor: '#2196f3' }
-              : undefined
-          }
+        <Button
+          variant={'primary'}
+          bg={channel.id === currentVoiceChannel.id ? 'green.400' : undefined}
           onClick={joinVoice(channel.id)}
+          display="flex"
+          justifyContent={'space-between'}
+          key={_id}
         >
           {channel.name}
-          {currentlyLoading === channel.id && (
-            <img className="loading-small" src={LoadingIcon} />
-          )}
-        </LinkButton>
+          {currentlyLoading == channel.id && <Image src={LoadingIcon} h={6} />}
+        </Button>
       );
     }
 
@@ -131,26 +156,107 @@ export default function BotContainer({
     }
 
     return (
-      <div className="bot-status-container">
-        <div className="bot-avi-container">
-          <img
-            src={botInfo.avatarUrl ?? BotLogo}
-            style={isBotStarted ? { borderColor: '#50c878' } : {}}
-          />
-        </div>
-        <div className="bot-info-container">
-          <p>{botInfo.name}</p>
-        </div>
-      </div>
+      <Flex
+        bg="gray.800"
+        p={4}
+        borderStyle={'solid'}
+        borderWidth={1}
+        borderColor={isBotStarted ? '#50c878' : 'red.5s00'}
+        borderRadius={'md'}
+        flexDir={'column'}
+        mt={4}
+      >
+        <Flex gap={4}>
+          <Box position="relative">
+            <Tooltip
+              label="Copy invite URL"
+              position={'absolute'}
+              top={-10}
+              right={'-60px'}
+            >
+              <span>
+                <IconButton
+                  top={0}
+                  right={-1}
+                  position={'absolute'}
+                  isRound
+                  size={'xs'}
+                  as={BiCopy}
+                  p={1}
+                  aria-label="Copy invite URL"
+                  zIndex={4}
+                  _hover={{
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => window.electron.copyInviteURL()}
+                />
+              </span>
+            </Tooltip>
+            <Image
+              h={16}
+              borderRadius={'full'}
+              src={botInfo.avatarUrl ?? BotLogo}
+              borderStyle={'solid'}
+              borderWidth={1}
+              borderColor={isBotStarted ? '#50c878' : 'red.5s00'}
+            />
+          </Box>
+          <Box>
+            <Text
+              w={64}
+              fontSize={'xl'}
+              textOverflow="ellipsis"
+              overflow={'hidden'}
+              whiteSpace={'nowrap'}
+            >
+              {botInfo.name}
+            </Text>
+            <Link
+              color="white"
+              display={'flex'}
+              flexDir={'row'}
+              alignItems={'center'}
+              whiteSpace={'pre-wrap'}
+              onClick={() => {
+                window.electron.openLink(
+                  'https://github.com/SeffUwU/DNDMusicBot#set-up-your-own-bot'
+                );
+              }}
+            >
+              How to setup your bot? <RxExternalLink />
+            </Link>
+          </Box>
+        </Flex>
+        {!isBotStarted && (
+          <Button
+            mt={4}
+            variant={'primary'}
+            onClick={() => {
+              window.electron.startWithSavedToken();
+            }}
+          >
+            START WITH SAVED TOKEN
+          </Button>
+        )}
+      </Flex>
     );
   };
   return (
-    <>
-      <LinkButton>CHANGE TOKEN</LinkButton>
+    <Flex gap={4} flexDir="column">
+      {/* <LinkButton>CHANGE TOKEN</LinkButton> */}
       <BotInfoCont />
 
-      {isBotStarted && <h2 className="menu-title">Select your channels</h2>}
+      {isBotStarted && (
+        <Flex justify="space-between">
+          <Text className="menu-title">
+            {getTranslation('selectBotChannel')}
+          </Text>
+          <Button variant={'functional'} onClick={refreshGuilds}>
+            REFRESH
+          </Button>
+        </Flex>
+      )}
       {isBotStarted && !selectedGuild ? showGuilds() : showVoiceChannels()}
-    </>
+    </Flex>
   );
 }

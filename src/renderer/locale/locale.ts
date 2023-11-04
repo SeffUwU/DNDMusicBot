@@ -19,6 +19,14 @@ export const locale = {
     tooLongWarning:
       'It seems that it takes too long to authenticate with your token. This may indicate that the key is invalid or you just have a slow internet ;)',
     shuffle: 'SHUFFLE',
+    navigatorKeyword: 'Navigate:',
+    filesTab: 'Files',
+    youtubeTab: 'Youtube (WIP)',
+    languageKeyword: 'Languages:',
+    settingsKeyword: 'Settings:',
+    changeFolderBtn: 'Change folder',
+    appExit: 'EXIT',
+    selectBotChannel: 'Select channel:',
   },
   ru: {
     botStartMsg: 'Сначала запусти бота! UwU',
@@ -40,5 +48,13 @@ export const locale = {
     tooLongWarning:
       'Похоже что аутентификация идет слишком долго.. Это может означать что у вас не правильный токен или медленный интернет ;)',
     shuffle: 'ПЕРЕМЕШАТЬ',
+    navigatorKeyword: 'Навигация:',
+    filesTab: 'ФАЙЛЫ',
+    youtubeTab: 'Youtube (НЗП)',
+    languageKeyword: 'Языки:',
+    settingsKeyword: 'Настройки:',
+    changeFolderBtn: 'Сменить папку',
+    appExit: 'ВЫЙТИ',
+    selectBotChannel: 'Выберете канал:',
   },
 };

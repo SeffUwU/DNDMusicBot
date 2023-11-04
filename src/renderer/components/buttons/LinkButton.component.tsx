@@ -6,11 +6,13 @@ export default function LinkButton({
   children,
   path = '/',
   additionalStyle,
+  additionalClassName,
   onClick,
 }: {
   children?: React.ReactNode | React.ReactNode[];
   path?: string;
   additionalStyle?: React.CSSProperties;
+  additionalClassName?: string | undefined;
   onClick?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   const navigate = useNavigate();
@@ -19,7 +21,7 @@ export default function LinkButton({
   };
   return (
     <a
-      className="link-button"
+      className={`link-button ${additionalClassName ?? ''}`}
       style={additionalStyle}
       onClick={onClick ?? handleOnClick}
     >

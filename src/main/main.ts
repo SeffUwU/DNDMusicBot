@@ -8,7 +8,7 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, clipboard, ipcMain, shell } from 'electron';
 import * as fs from 'fs';
 import { homedir } from 'os';
 import path from 'path';
@@ -18,6 +18,7 @@ import FileManagerService from './fileManager.service';
 import MenuBuilder from './menu';
 import { musicDialog } from './ts/functions';
 import { resolveHtmlPath } from './util';
+import { YTMetaType } from 'sharedTypes/sharedTypes';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -107,16 +108,28 @@ ipcMain.handle('userEvent:exit-app', async (event, ...args) => {
 ipcMain.handle('fetchLocalBotInfo', () => {
   const home = homedir();
   const folder = home + '/Documents/h010MusicBot';
-  const botInfoJSON = fs.readFileSync(folder + '/bot-info.json');
-
   if (!fs.existsSync(folder)) {
     fs.mkdirSync(folder, { recursive: true });
   }
-  console.log(String(botInfoJSON), !!botInfoJSON);
+
+  const botInfoJSON =
+    fs.existsSync(folder + '/bot-info.json') &&
+    fs.readFileSync(folder + '/bot-info.json');
+
+  const savedLinksJson =
+    fs.existsSync(folder + '/saved-links.json') &&
+    fs.readFileSync(folder + '/saved-links.json');
+
   botInfoJSON &&
     DiscordClientInteraction.emitRender(
       'BOT_INFO',
       JSON.parse(String(botInfoJSON))
+    );
+
+  savedLinksJson &&
+    DiscordClientInteraction.emitRender(
+      'SAVED_LINK',
+      JSON.parse(String(savedLinksJson))
     );
 });
 
@@ -124,6 +137,81 @@ ipcMain.handle('openMusicFolderDialog', () => {
   return musicDialog(mainWindow!);
 });
 
+ipcMain.handle(
+  'userEvent:playYTLink',
+  (event, link: string, newDuration?: number) => {
+    DiscordClientInteraction.playYtDLAudio(link, newDuration);
+  }
+);
+
+ipcMain.handle('userEvent:saveLink', (event, info: YTMetaType) => {
+  const home = homedir();
+
+  const folder = home + '/Documents/h010MusicBot';
+
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+
+  const savedLinksJson =
+    fs.existsSync(folder + '/saved-links.json') &&
+    fs.readFileSync(folder + '/saved-links.json');
+
+  if (!savedLinksJson) {
+    fs.writeFileSync(folder + '/saved-links.json', JSON.stringify([info]));
+    DiscordClientInteraction.emitRender('SAVED_LINK', [info]);
+
+    return;
+  }
+
+  const savedLinks: YTMetaType[] = JSON.parse(String(savedLinksJson));
+
+  savedLinks.push(info);
+
+  fs.writeFileSync(folder + '/saved-links.json', JSON.stringify(savedLinks));
+
+  DiscordClientInteraction.emitRender('SAVED_LINK', savedLinks);
+});
+
+ipcMain.handle('userEvent:removeLink', (event, toRemoveLink: string) => {
+  const home = homedir();
+
+  const folder = home + '/Documents/h010MusicBot';
+
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+
+  const savedLinksJson =
+    fs.existsSync(folder + '/saved-links.json') &&
+    fs.readFileSync(folder + '/saved-links.json');
+
+  if (!savedLinksJson) {
+    return;
+  }
+  const savedLinks: YTMetaType[] = JSON.parse(String(savedLinksJson));
+
+  const withRemovedLink = savedLinks.filter(({ link }) => {
+    return link !== toRemoveLink;
+  });
+
+  fs.writeFileSync(
+    folder + '/saved-links.json',
+    JSON.stringify(withRemovedLink)
+  );
+
+  DiscordClientInteraction.emitRender('SAVED_LINK', withRemovedLink);
+});
+ipcMain.handle('userEvent:copyInviteURL', () => {
+  const clientId = DiscordClientInteraction.getClientId();
+  clipboard.writeText(
+    `https://discord.com/api/oauth2/authorize?client_id=${clientId}&permissions=274881054720&scope=bot`
+  );
+  DiscordClientInteraction.emitRenderInfo(
+    'Link copied',
+    'Link copied to clipboard'
+  );
+});
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();

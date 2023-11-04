@@ -238,12 +238,6 @@ export default class MenuBuilder {
             },
           },
           {
-            label: '&Test YT',
-            click: () => {
-              DiscordClientInteraction.playYtDLAudio('');
-            },
-          },
-          {
             label: '&Close',
             accelerator: 'Ctrl+W',
             click: () => {

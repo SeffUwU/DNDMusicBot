@@ -11,3 +11,9 @@ export type FSType =
         directory: false;
       }[];
     };
+
+export type YTMetaType = {
+  title: string;
+  lengthSeconds: number;
+  link: string;
+};

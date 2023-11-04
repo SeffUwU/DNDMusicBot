@@ -5,7 +5,8 @@ import { homedir } from 'os';
 import { commandHandlers } from './commandHandlers';
 import { DiscordClientInteraction } from './discordClientInteractionClass';
 import { deployCommands } from './initCommands';
-let botStartedInterval: setInterval | undefined;
+
+let botStartedInterval: ReturnType<typeof setInterval> | undefined;
 
 export default function botInit(token: string, mainWindow: BrowserWindow) {
   try {
@@ -28,7 +29,7 @@ export default function botInit(token: string, mainWindow: BrowserWindow) {
     client.once(Events.ClientReady, async (connectedClient) => {
       DiscordClientInteraction.setClient(connectedClient);
 
-      await deployCommands('1033073461842690150', token, connectedClient);
+      await deployCommands(connectedClient.user.id, token, connectedClient);
 
       connectedClient.on(Events.InteractionCreate, (interaction) => {
         if (!interaction.isChatInputCommand()) return;

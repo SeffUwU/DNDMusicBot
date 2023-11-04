@@ -8,9 +8,11 @@ export const useElectronState = function <T>(
   const [state, setState] = useState(initialState);
 
   useEffect(() => {
-    window.electron.ipcRenderer.on(eventName, (val) => {
+    const clearListener = window.electron.ipcRenderer.on(eventName, (val) => {
       setState(val);
     });
+
+    return () => clearListener();
   }, []);
 
   return state;
@@ -22,7 +24,8 @@ export const useElectronHandler = function <T>(
   dependency?: any[]
 ) {
   useEffect(() => {
-    const eventClearer = window.electron.ipcRenderer.on(eventName, cb);
-    return () => eventClearer();
+    const clearListener = window.electron.ipcRenderer.on(eventName, cb);
+
+    return () => clearListener();
   }, [dependency]);
 };

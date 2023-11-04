@@ -1,4 +1,5 @@
 import {
+  NoSubscriberBehavior,
   VoiceConnection,
   VoiceConnectionStatus,
   createAudioPlayer,
@@ -10,9 +11,10 @@ import { Client, Collection, Guild, GuildBasedChannel } from 'discord.js';
 
 import { BrowserWindow, app } from 'electron';
 import fluentFfmpeg, { FfmpegCommand } from 'fluent-ffmpeg';
-import { YtDlModule } from '../ytdl/ytdl.module';
 import { normalize } from 'path';
-import { PassThrough, Readable, Writable } from 'stream';
+import { stream } from 'play-dl';
+import { PassThrough, Readable } from 'stream';
+import ytdl from 'ytdl-core';
 
 const FfmpegPath = require('ffmpeg-static');
 
@@ -25,13 +27,23 @@ fluentFfmpeg.setFfmpegPath(
 export class DiscordClientInteraction {
   private static client: Client;
   private static currentVoiceConnection: VoiceConnection;
-  private static audioPlayer = createAudioPlayer();
+  private static audioPlayer = createAudioPlayer({
+    behaviors: {
+      noSubscriber: NoSubscriberBehavior.Play,
+    },
+  });
   private static isPlaying: boolean = false;
   private static currentFfmpegCommand: FfmpegCommand | null;
   private static currentOpenStream: PassThrough | null;
   public static mainWindow: BrowserWindow;
   public static currentOpenYTDLStream: Readable;
-
+  public static getClientId() {
+    if (!this.client?.user?.id) {
+      this.emitRenderError('Discord client is not set', true);
+      return;
+    }
+    return this.client.user.id;
+  }
   public static setClient(setClient: Client) {
     if (this.client) {
       throw new Error('Client is already set!');
@@ -76,18 +88,19 @@ export class DiscordClientInteraction {
   public static getGuildById(id: string): Guild | undefined {
     this.isClientSet();
 
-    return this.client.guilds.cache.find((guild) => guild.id === id);
+    return this.client.guilds.cache.get(id);
   }
 
   public static joinVoice(guildId: string, id: string) {
     this.isClientSet();
 
     if (this.currentVoiceConnection) {
+      this.currentVoiceConnection.removeAllListeners();
       this.currentVoiceConnection.disconnect();
       this.currentVoiceConnection.destroy();
     }
 
-    const guild = this.client.guilds.cache.get(guildId);
+    const guild = this.getGuildById(guildId);
 
     if (!guild) {
       throw new Error('This channel does not exist.');
@@ -120,6 +133,8 @@ export class DiscordClientInteraction {
         console.log(err);
         this.emitRenderError(new Error(`AudioPlayer error: ${err}`));
       });
+
+      this.currentVoiceConnection = connection;
     });
 
     connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -129,8 +144,11 @@ export class DiscordClientInteraction {
           entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
         ]);
       } catch (error) {
-        connection.removeAllListeners();
-        connection.destroy();
+        if (this.currentVoiceConnection) {
+          this.currentVoiceConnection.removeAllListeners();
+          this.currentVoiceConnection.disconnect();
+          this.currentVoiceConnection.destroy();
+        }
       }
     });
 
@@ -227,11 +245,19 @@ export class DiscordClientInteraction {
     this.mainWindow.webContents.send(event, data);
   }
 
-  public static emitRenderError(data: any) {
+  public static emitRenderError(data: any, useToast = false) {
+    if (useToast) {
+      this.emitRender('ERROR_TOAST', data);
+      return;
+    }
     this.emitRender('MAIN_PROCESS_ERROR', data);
   }
 
-  public static playYtDLAudio(url: string, seekTime: number = 0) {
+  public static emitRenderInfo(title: string, description: string) {
+    this.emitRender('INFO_TOAST', { description, title });
+  }
+
+  public static async playYtDLAudio(url: string, newDuration: number = 0) {
     if (this.currentFfmpegCommand) {
       this.currentFfmpegCommand?.kill('');
       this.currentFfmpegCommand = null;
@@ -248,46 +274,23 @@ export class DiscordClientInteraction {
 
     this.currentOpenStream = new PassThrough({ autoDestroy: true });
 
-    this.currentOpenYTDLStream = YtDlModule.createStream(url, {
-      begin: '00:00:22.000',
+    const ytstream = await stream(url, {
+      discordPlayerCompatibility: true,
+      seek: newDuration,
     });
 
-    this.currentFfmpegCommand = fluentFfmpeg({
-      source: this.currentOpenYTDLStream,
-    })
-      .withAudioCodec('libmp3lame')
-      .format('mp3')
-      .output(this.currentOpenStream, { end: true })
-      .on('codecData', (data) => {
-        // const split = data.duration.split(':');
-        // const hours = Number(split[0]);
-        // const minutes = Number(split[1]);
-        // const seconds = Number(split[2]);
-        // // maxDuration = Math.round(hours * 60 * 60 + minutes * 60 + seconds);
-        // !this.isPlaying && this.audioPlayer.play(newResource);
-        // this.isPlaying = true;
-        // this.emitRender('RESOURCE_STARTED', {
-        // maxDuration,
-        // seek: seekTime,
-        // });
-        // this.emitRender('RESOURCE_PAUSED', true);
-      });
-    // .on('error', (err: any) => {
-    //   // Weird. but i couldn't get it to close properly..
-    //   if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') {
-    //     return;
-    //   }
-    //   console.error(err);
-    //   // this.emitRenderError(
-    //   //   new Error(`Error creating stream for file: ${path} `)
-    //   // );
-    // })
-    // .on('start', () => {});
+    const ytInfo = await ytdl.getBasicInfo(url);
 
-    this.currentFfmpegCommand.run();
-
-    const newResource = createAudioResource(this.currentOpenStream);
+    const newResource = createAudioResource(ytstream.stream, {
+      inputType: ytstream.type,
+    });
 
     this.audioPlayer.play(newResource);
+
+    this.emitRender('YT_META', {
+      lengthSeconds: ytInfo.videoDetails.lengthSeconds,
+      link: url,
+      title: ytInfo.videoDetails.title,
+    });
   }
 }
