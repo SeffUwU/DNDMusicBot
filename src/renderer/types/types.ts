@@ -15,7 +15,7 @@ export type PlayerSettingsType = {
 };
 
 export type allowedLocale = 'en' | 'ru';
-export type localeKeys = keyof typeof locale[allowedLocale];
+export type localeKeys = keyof (typeof locale)[allowedLocale];
 export type getTranslationFn = (key: localeKeys) => string;
 
 export type DrillThruProps = {
@@ -43,3 +43,19 @@ export type TBotInfo =
       isBot: boolean;
       isSet: true;
     };
+
+export type EventArgs = {
+  filePaths?: string[];
+};
+
+export type SelectedFolderType = {
+  folderIndex: null | number;
+  isInFolder: boolean;
+};
+export type PlayBackType = {
+  isPaused: boolean;
+  currentFile: string;
+  min: number;
+  max: number;
+  value: number;
+};

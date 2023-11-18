@@ -18,12 +18,19 @@ import ytdl from 'ytdl-core';
 
 const FfmpegPath = require('ffmpeg-static');
 
-fluentFfmpeg.setFfmpegPath(
-  app.isPackaged
-    ? './resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg.exe'
-    : FfmpegPath
-);
+if (app.isPackaged) {
+  fluentFfmpeg.setFfmpegPath(
+    FfmpegPath.replace('app.asar', 'app.asar.unpacked')
+  );
+} else {
+  fluentFfmpeg.setFfmpegPath(FfmpegPath);
+}
 
+console.log('\x1b[36m%s\x1b[0m', '$$ffmpeg path:', FfmpegPath);
+
+/**
+ * DiscordClientInteraction. A static class which provides methods to interact with discord and local FS
+ */
 export class DiscordClientInteraction {
   private static client: Client;
   private static currentVoiceConnection: VoiceConnection;
@@ -166,19 +173,33 @@ export class DiscordClientInteraction {
 
     this.mainWindow.webContents.send('RESOURCE_PAUSED', this.isPlaying);
   }
-
+  public static playSound(soundPath?: string) {
+    // how the hell do i do it???
+    // i want to know...
+    if (soundPath && this.currentFfmpegCommand) {
+      this.currentFfmpegCommand
+        .complexFilter([
+          `[0:a]asetpts=PTS-STARTPTS,aresample=async=1[a0]`,
+          `[1:a]apad[a1]`,
+          `[a0][a1]amix=inputs=2`,
+        ])
+        .input(soundPath)
+        .run();
+      return;
+    }
+  }
   public static playResource(path: string, seekTime: number = 0) {
     try {
       path = String(normalize(path));
-
       if (this.currentFfmpegCommand) {
         this.currentFfmpegCommand.kill('');
         this.currentFfmpegCommand = null;
       }
 
       if (this.currentOpenStream) {
+        this.currentOpenStream.removeAllListeners();
+        this.currentOpenStream.destroy();
         this.audioPlayer.stop(true);
-        this.currentOpenStream.end();
       }
 
       this.currentOpenStream = new PassThrough({ autoDestroy: true });
@@ -187,10 +208,12 @@ export class DiscordClientInteraction {
 
       let maxDuration: number = Math.round(newResource.playbackDuration / 1000);
 
-      this.currentFfmpegCommand = fluentFfmpeg(path)
+      this.currentFfmpegCommand = fluentFfmpeg()
+        .input(path)
+        .setStartTime(seekTime ?? 0)
+
         .noVideo()
         .format('mp3')
-        .setStartTime(seekTime ?? 0)
         .output(this.currentOpenStream, { end: true })
         .on('codecData', (data) => {
           const split = data.duration.split(':');
@@ -204,12 +227,13 @@ export class DiscordClientInteraction {
           this.isPlaying = true;
           this.emitRender('RESOURCE_STARTED', {
             maxDuration,
-            seek: seekTime,
+            seek: seekTime ?? 0,
           });
+
           this.emitRender('RESOURCE_PAUSED', true);
         })
         .on('error', (err: any) => {
-          // Weird. but i couldn't get it to close properly..
+          // Weird, but I couldn't get it to close properly...
           if (err.code === 'ERR_STREAM_PREMATURE_CLOSE') {
             return;
           }
@@ -222,9 +246,9 @@ export class DiscordClientInteraction {
 
       this.currentFfmpegCommand.run();
     } catch (err) {
-      console.log(err);
+      console.error(err);
       this.emitRenderError(
-        new Error(`couldn\'t play the resource! ${(err as Error).message}`)
+        new Error(`Couldn't play the resource! ${(err as Error).message}`)
       );
     }
   }
