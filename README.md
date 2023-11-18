@@ -117,6 +117,10 @@ You will packaged files there!
 
 ### I only started to document these on release 0.2.1.. So.. dont expect much..
 
+### 0.3.2
+
+- Fix discord.js crashing over the non existence of ffmpeg on system that do no have it installed.
+
 ### 0.3.1
 
 - Migrated to Chakra UI
