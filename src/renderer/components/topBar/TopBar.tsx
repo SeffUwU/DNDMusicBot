@@ -133,6 +133,7 @@ export const TopBar = ({
         css="-webkit-app-region: drag;"
       >
         <Slide
+          delay={0}
           key="left"
           in={isOpenLeft}
           direction="left"
@@ -201,6 +202,7 @@ export const TopBar = ({
         </Slide>
         <Slide
           key="right"
+          delay={0}
           direction="right"
           in={isOpenRight}
           style={{

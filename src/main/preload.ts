@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electron', {
   togglePause: () => ipcRenderer.invoke('togglePause'),
   playResource: (path: string, seek?: number) =>
     ipcRenderer.invoke('playResource', { path, seek }),
+  playSound: (path: string) => ipcRenderer.invoke('playSound', { path }),
   isClientSet: () => ipcRenderer.invoke('isClientSet'),
   startWithToken: (token: string, saveToken: boolean) =>
     ipcRenderer.invoke('startWithToken', token, saveToken),

@@ -1,71 +1,19 @@
-import { Flex, IconButton, Switch, Text } from '@chakra-ui/react';
+import { Button, Flex, IconButton, Switch, Text } from '@chakra-ui/react';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { BiPause, BiPlay } from 'react-icons/bi';
 import { useElectronHandler, useElectronState } from 'renderer/customHooks';
 import { padNum } from 'renderer/helpers/helpers';
-import { PlayerSettingsType, getTranslationFn } from 'renderer/types/types';
+import {
+  EventArgs,
+  PlayBackType,
+  PlayerSettingsType,
+  SelectedFolderType,
+  getTranslationFn,
+} from 'renderer/types/types';
 import { FSType } from 'sharedTypes/sharedTypes';
 import LinkButton from './buttons/LinkButton.component';
-type EventArgs = {
-  filePaths?: string[];
-};
+import { getNextFilePath } from 'renderer/helpers/getNextFilePath';
 
-type SelectedFolderType = {
-  folderIndex: null | number;
-  isInFolder: boolean;
-};
-type PlayBackType = {
-  isPaused: boolean;
-  currentFile: string;
-  min: number;
-  max: number;
-  value: number;
-};
-function getNextFilePath(
-  selectedFolder: SelectedFolderType,
-  fileList: FSType[],
-  filesOnly: FSType[],
-  playback: PlayBackType,
-  playAudio: any
-) {
-  let path = null;
-
-  if (selectedFolder.folderIndex !== null) {
-    const foundFolder = fileList[selectedFolder.folderIndex];
-
-    if (foundFolder.directory) {
-      const currentFileName = playback.currentFile.replace(
-        `${foundFolder.name}/`,
-        ''
-      );
-      const currentFileIdx = foundFolder.files.findIndex(
-        (file) => file.name === currentFileName
-      );
-
-      const nextFileIdx = (currentFileIdx + 1) % foundFolder.files.length;
-
-      if (
-        fileList[selectedFolder.folderIndex]?.name &&
-        foundFolder.files[nextFileIdx]?.name
-      ) {
-        path = `${fileList[selectedFolder.folderIndex].name}/${
-          foundFolder.files[nextFileIdx].name
-        }`;
-      }
-    }
-  } else {
-    const currentFileIdx = filesOnly.findIndex(
-      (file) => file.name === playback.currentFile
-    );
-    const nextFileIdx = (currentFileIdx + 1) % filesOnly.length;
-
-    path = filesOnly[nextFileIdx]?.name;
-  }
-
-  if (path) {
-    playAudio(path)();
-  }
-}
 const BackButton = ({ onPress, text }: { onPress: any; text: string }) => {
   return (
     <Flex
@@ -134,33 +82,28 @@ export default function FileContainer({
   });
 
   useEffect(() => {
-    // This is is a big mess.. as is most of this app! So i guess this is fine.. TODO: REWRITE
-    if (Math.ceil(playback.value) === 0 || Math.ceil(playback.max) === 0) {
+    const current = Math.ceil(playback.value);
+    const max = Math.ceil(playback.max);
+
+    if (current === 0 || max === 0) {
       return;
     }
 
-    if (Math.ceil(playback.value) >= playback.max) {
+    if (current >= max) {
       if (playerSettings.repeat) {
         playAudio(playback.currentFile)();
-        return;
-      }
-
-      if (!playerSettings.autoplay) {
+      } else if (!playerSettings.autoplay) {
         handlePause();
-        return;
+      } else {
+        const filesOnly = fileList.filter((el) => !el.directory);
+        getNextFilePath(
+          selectedFolder,
+          fileList,
+          filesOnly,
+          playback,
+          playAudio
+        );
       }
-
-      const filesOnly = fileList.filter((el) => !el.directory);
-
-      let path: string;
-
-      // SO! Instead of being smart i wrote this assshittery.
-      // In short: This if statement decides if were working with mp3 files of
-      // the directory! If we are! We are setting the path accordingly!
-      // don't mind the double nextFileIdx and currentFileIdx. They are block scoped.
-      //
-      // july 10 2023 upd: wow this truly is assshittery..
-      getNextFilePath(selectedFolder, fileList, filesOnly, playback, playAudio);
     }
   }, [playback.value, playback.max]);
 
@@ -174,17 +117,17 @@ export default function FileContainer({
       }));
 
       setCurrentInterval((prev) => {
-        prev && clearInterval(prev);
+        if (prev) {
+          clearInterval(prev);
+        }
 
         return setInterval(() => {
-          setPlayback((prev) => {
-            return {
-              ...prev,
-              value: prev.isPaused
-                ? prev.value
-                : Math.min(prev.value + 1, prev.max),
-            };
-          });
+          setPlayback((prev) => ({
+            ...prev,
+            value: prev.isPaused
+              ? prev.value
+              : Math.min(prev.value + 1, prev.max),
+          }));
         }, 1000);
       });
     }

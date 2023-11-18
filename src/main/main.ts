@@ -90,7 +90,15 @@ ipcMain.handle('connectVoice', async (event, ...args) => {
 
 ipcMain.handle('playResource', async (event, ...args) => {
   const params: { path: string; seek: number } = args[0];
+  console.log(args);
   DiscordClientInteraction.playResource(params.path, params.seek);
+
+  return true;
+});
+
+ipcMain.handle('playSound', async (event, ...args) => {
+  const params: { path: string } = args[0];
+  DiscordClientInteraction.playSound(params.path);
 
   return true;
 });

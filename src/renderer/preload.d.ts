@@ -15,6 +15,7 @@ declare global {
       connectVoice: (guildId: string, voiceId: string) => Promise<boolean>;
       togglePause: () => void;
       playResource: (path: string, seek?: number) => void;
+      playSound: (path: string) => void;
       isClientSet: () => Promise<boolean>;
       startWithToken: (token: string, saveToken: boolean) => void;
       startWithSavedToken: () => void;
