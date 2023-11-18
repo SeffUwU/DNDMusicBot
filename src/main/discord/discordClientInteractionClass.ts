@@ -18,12 +18,19 @@ import ytdl from 'ytdl-core';
 
 const FfmpegPath = require('ffmpeg-static');
 
-fluentFfmpeg.setFfmpegPath(
-  app.isPackaged
-    ? './resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg.exe'
-    : FfmpegPath
-);
+if (app.isPackaged) {
+  fluentFfmpeg.setFfmpegPath(
+    FfmpegPath.replace('app.asar', 'app.asar.unpacked')
+  );
+} else {
+  fluentFfmpeg.setFfmpegPath(FfmpegPath);
+}
 
+console.log('\x1b[36m%s\x1b[0m', '$$ffmpeg path:', FfmpegPath);
+
+/**
+ * DiscordClientInteraction. A static class which provides methods to interact with discord and local FS
+ */
 export class DiscordClientInteraction {
   private static client: Client;
   private static currentVoiceConnection: VoiceConnection;
