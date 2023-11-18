@@ -14,22 +14,87 @@ type SelectedFolderType = {
   folderIndex: null | number;
   isInFolder: boolean;
 };
+type PlayBackType = {
+  isPaused: boolean;
+  currentFile: string;
+  min: number;
+  max: number;
+  value: number;
+};
+function getNextFilePath(
+  selectedFolder: SelectedFolderType,
+  fileList: FSType[],
+  filesOnly: FSType[],
+  playback: PlayBackType,
+  playAudio: any
+) {
+  let path = null;
 
+  if (selectedFolder.folderIndex !== null) {
+    const foundFolder = fileList[selectedFolder.folderIndex];
+
+    if (foundFolder.directory) {
+      const currentFileName = playback.currentFile.replace(
+        `${foundFolder.name}/`,
+        ''
+      );
+      const currentFileIdx = foundFolder.files.findIndex(
+        (file) => file.name === currentFileName
+      );
+
+      const nextFileIdx = (currentFileIdx + 1) % foundFolder.files.length;
+
+      if (
+        fileList[selectedFolder.folderIndex]?.name &&
+        foundFolder.files[nextFileIdx]?.name
+      ) {
+        path = `${fileList[selectedFolder.folderIndex].name}/${
+          foundFolder.files[nextFileIdx].name
+        }`;
+      }
+    }
+  } else {
+    const currentFileIdx = filesOnly.findIndex(
+      (file) => file.name === playback.currentFile
+    );
+    const nextFileIdx = (currentFileIdx + 1) % filesOnly.length;
+
+    path = filesOnly[nextFileIdx]?.name;
+  }
+
+  if (path) {
+    playAudio(path)();
+  }
+}
 const BackButton = ({ onPress, text }: { onPress: any; text: string }) => {
   return (
-    <button
-      className="file-element"
+    <Flex
+      h="36"
+      w="48"
+      key={'back.btn'}
+      borderStyle={'solid'}
+      borderColor={'gray.600'}
+      borderWidth={1}
+      borderRadius={'md'}
+      overflow={'hidden'}
+      _hover={{
+        cursor: 'pointer',
+        bg: '#ccc',
+      }}
       style={{
         color: 'white',
         display: 'flex',
         flexDirection: 'row',
         backgroundColor: '#3e485a',
       }}
-      key={'back-btn'}
+      justify={'center'}
+      align={'center'}
       onClick={onPress}
     >
-      <span>{text}</span>
-    </button>
+      <Text p={2} fontSize={'xl'}>
+        {text}
+      </Text>
+    </Flex>
   );
 };
 
@@ -50,7 +115,7 @@ export default function FileContainer({
     folderIndex: null,
     isInFolder: false,
   });
-  const [playback, setPlayback] = useState({
+  const [playback, setPlayback] = useState<PlayBackType>({
     isPaused: false,
     currentFile: '',
     min: 0,
@@ -95,43 +160,7 @@ export default function FileContainer({
       // don't mind the double nextFileIdx and currentFileIdx. They are block scoped.
       //
       // july 10 2023 upd: wow this truly is assshittery..
-      if (selectedFolder.folderIndex !== null) {
-        const foundFolder = fileList[selectedFolder.folderIndex];
-
-        if (!foundFolder.directory) {
-          return;
-        }
-
-        const currentFileIdx = foundFolder.files.findIndex(
-          (file) =>
-            file.name ===
-            playback.currentFile.replace(`${foundFolder.name}/`, '')
-        );
-
-        const nextFileIdx =
-          currentFileIdx + 1 > foundFolder.files.length - 1
-            ? 0
-            : currentFileIdx + 1;
-        if (
-          fileList[selectedFolder.folderIndex]?.name &&
-          foundFolder.files[nextFileIdx]?.name
-        ) {
-          path = `${fileList[selectedFolder.folderIndex].name}/${
-            foundFolder.files[nextFileIdx].name
-          }`;
-        }
-      } else {
-        const currentFileIdx = filesOnly.findIndex(
-          (file) => file.name === playback.currentFile
-        );
-
-        const nextFileIdx =
-          currentFileIdx + 1 > filesOnly.length - 1 ? 0 : currentFileIdx + 1;
-
-        path = filesOnly[nextFileIdx]?.name;
-      }
-
-      path! && playAudio(path)();
+      getNextFilePath(selectedFolder, fileList, filesOnly, playback, playAudio);
     }
   }, [playback.value, playback.max]);
 
@@ -217,10 +246,15 @@ export default function FileContainer({
           borderWidth={1}
           borderRadius={'md'}
           overflow={'hidden'}
+          color={element.directory ? 'black' : 'white'}
           _hover={{
             cursor: 'pointer',
             bg: '#ccc',
+            color: element.directory ? 'black' : 'black',
           }}
+          fontSize={'xl'}
+          p={2}
+          wordBreak={'break-word'}
           onClick={
             element.directory
               ? () =>
@@ -228,13 +262,7 @@ export default function FileContainer({
               : playAudio(path)
           }
         >
-          <Text
-            p={2}
-            fontSize={'xl'}
-            color={element.directory ? 'black' : undefined}
-          >
-            {element.name}
-          </Text>
+          {element.name}
         </Flex>
       );
     };
@@ -372,7 +400,7 @@ export default function FileContainer({
             showSelectableElements
           ) : (
             <LinkButton onClick={() => window.electron.openMusicFolderDialog()}>
-              CHANGE FOLDER
+              {getTranslation('changeFolderBtn')}
             </LinkButton>
           )}
         </Flex>
